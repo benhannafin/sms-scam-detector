@@ -39,6 +39,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 029 | Data loading and cleaning rules | Accepted |
 | 030 | Text preprocessing rules | Accepted |
 | 031 | Training data and model file rules | Accepted |
+| 032 | Classifier result, model file checks and mock | Accepted |
 
 ---
 
@@ -225,3 +226,10 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Decision:** After `clean_text`, keep one copy of each repeated message and remove conflicting messages completely, leaving 5,707 messages. The saved model trains on the 80% training set only. It is saved as `models/model_v1.joblib`, committed to the repo, with scores in `models/model_v1_metrics.json`. Pin `scikit-learn==1.9.1`, because a model saved with one version may fail or misbehave on another. The Stage 3 test checks cross-validation on the training portion (at least 92% scam-vs-safe recall, at most 5% false alarms) instead of reproducing the old baseline.
 **Alternatives considered:** Keep the repeats (scores look better, but are inflated by leakage); retrain on 100% after evaluating (more data, but no untouched data would be left to score that model); run tests against the test set (would break "used once").
 **Consequences:** The honest estimate is just under the 95% target. If the test score is under it, the result is recorded and handled in Stage 11, not by retraining until the test set looks better. The dedupe step lives in training, not in `load_dataset`, because it depends on the preprocessor.
+
+## 032 – Classifier result, model file checks and mock
+**Status:** Accepted (5 Nov 2026)
+**Context:** Checking the saved model showed two problems. A message with no words in the model's vocabulary still gets a rating based on how common each class is: ham at 83.1%, close to the 85.9% for an ordinary made-up text, so the Unsure threshold may not catch it, and a scam in unfamiliar words could show as Legitimate (see 026). Separately, a copy of the model with 200 bytes overwritten loaded normally and gave different probabilities with no error.
+**Decision:** This changes the Classify interface. Classify returns a read-only `Prediction` with `label`, `probabilities` and `recognised_terms`, and the check service shows Unsure when `recognised_terms` is 0 (Stage 6). `load_model` checks the file against a SHA-256 checksum in `models/model_v1.sha256`, which `save_model` writes from now on, and refuses a file saved with a different scikit-learn version. All these failures raise `ModelLoadError`. `MockClassifier` returns a fixed answer set by each test, defaulting to ham, and needs no model file.
+**Alternatives considered:** Rely on the Unsure threshold alone (83.1% is too close to a normal message's score); have the classifier return an Unsure label itself (the Unsure rule belongs to the check service); catch load errors without a checksum (misses damage that loads normally); warn on a version mismatch instead of refusing (a mismatched model may misbehave, see 031); a plain dictionary result (mistyped field names wouldn't fail straight away); a mock using keyword rules (tests couldn't set an exact probability).
+**Consequences:** Model files can run code when loaded, so they only ever come from our own `models/` folder, and the version never comes from user input. The check service must handle `recognised_terms`. A message with at least one recognised term is still rated normally, however unfamiliar the rest of it is.

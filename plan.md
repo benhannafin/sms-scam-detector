@@ -16,7 +16,7 @@ Layered modular monolith: one Flask app, one module per component, modules talk 
 | API | `api` | `POST /api/check`: `{message}` → `{label, confidence, status, reasons}` |
 | Application | `check_service` | Check a message: text → check result (applies the Unsure rule) |
 | ML | `preprocessor` | Clean the text: raw text → cleaned text with tokens |
-| ML | `classifier` | Classify: cleaned text → label + probability per class; Load model: version → model |
+| ML | `classifier` | Classify: cleaned text → label + probability per class + recognised-term count; Load model: version → model |
 | ML | `explainer` | Explain: cleaned text + prediction → list of reasons |
 | Offline | `training` | Trains, evaluates and saves the model file |
 
@@ -49,7 +49,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 1 | Data loading and cleaning | Done |
 | 2 | Text preprocessor | Done |
 | 3 | Training pipeline | Done |
-| 4 | Classifier (+ mock) | Not started |
+| 4 | Classifier (+ mock) | Done |
 | 5 | Explainer | Not started |
 | 6 | Check service | Not started |
 | 7 | REST API | Not started |
@@ -194,9 +194,30 @@ sms-scam-detector/
 **Notes after finishing:** Chosen `C` is 1. Test set (1,142 messages, used once): scam-vs-safe recall 94.9% (166 of 175), just under the 95% target; false alarms 0.3% (3 of 967); macro F1 0.893; accuracy 97.1%. Handle the shortfall in Stage 11; don't retrain for this test set.
 
 ## Stage 4 – Classifier (+ mock)
-**Goal:** Classify and Load model – cleaned text in, label + probabilities out.
-**Key points:** a mock classifier with the same interface, so implementations can be swapped in one place.
-**Key tests:** missing or damaged model file gives a clear error, not a crash; mock and real return the same result shape.
+**Status:** Done
+**Goal:** Classify and Load model – cleaned text in; label, probabilities and recognised-term count out (see decision 032).
+**In scope:**
+- `load_model(version)` returns a `Classifier`. It checks the file against its checksum, loads it, and confirms it's a usable model saved with the installed scikit-learn version. Anything wrong raises `ModelLoadError` with a clear message.
+- `classifier.classify(cleaned_text)` returns a read-only `Prediction` with `label`, `probabilities` (for example `{"ham": 0.86, "spam": 0.1, "smishing": 0.04}`) and `recognised_terms`.
+- `MockClassifier` has the same `classify` method and returns a fixed answer that each test sets, defaulting to ham. It needs no model file.
+- `save_model` in `training/train.py` also writes the checksum, and `models/model_v1.sha256` is calculated from the existing model file. No retraining and no new test-set run.
+**Out of scope:** showing Unsure when `recognised_terms` is 0 (Stage 6); explainer access to word weights (Stage 5); choosing real or mock, and loading once at startup (Stage 7).
+**Files:** `app/classifier/classifier.py`, `app/classifier/mock.py`, `app/classifier/__init__.py`, `tests/test_classifier.py`, `training/train.py`, `tests/test_train.py`, `models/model_v1.sha256`.
+**Interfaces (in → out):** Classify: cleaned text → `Prediction(label, probabilities, recognised_terms)`. Load model: version → `Classifier`, or `ModelLoadError`. `load_model`, `Prediction`, `MockClassifier`, `Classifier` and `ModelLoadError` are imported from `app.classifier`.
+**Tests:**
+- Missing, truncated, overwritten, wrong-type and wrong-version model files each raise `ModelLoadError`, and an overwritten file that would otherwise load is caught by the checksum.
+- The real model file loads.
+- Probabilities match the right labels and add up to 1, and `label` is the most probable class.
+- `recognised_terms` is 0 for empty text and for unknown words, and more than 0 for known words.
+- The real and mock classifiers return the same shape; the mock returns what the test set.
+- `save_model` writes a checksum that matches the model file.
+**Done when:**
+- [x] `load_model`, `Classifier` and `MockClassifier` pass all of the above
+- [x] `pytest` passes
+- [x] Plain-English explanation given and `docs/learning_log.md` summary written
+- [x] Committed
+**Open questions:** none.
+**Notes after finishing:** 99 tests pass. The model file is unchanged; only its checksum was added. A mismatched scikit-learn version is refused by turning its warning into an error. Fields on `Prediction` can't be reassigned, but its `probabilities` dictionary can still be edited; nothing does this.
 
 ## Stage 5 – Explainer
 **Goal:** Explain – cleaned text + prediction in, reasons out.
@@ -204,7 +225,7 @@ sms-scam-detector/
 
 ## Stage 6 – Check service
 **Goal:** Check a message – runs preprocessor → classifier → explainer and applies the Unsure rule.
-**Key tests:** low confidence returns Unsure; "safe" never appears in a result.
+**Key tests:** low confidence returns Unsure; no recognised terms returns Unsure (decision 032); "safe" never appears in a result.
 
 ## Stage 7 – REST API
 **Goal:** `POST /api/check` with input validation and rate limiting.

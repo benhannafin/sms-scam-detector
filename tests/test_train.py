@@ -1,13 +1,16 @@
 """Stage 3 tests: training, evaluating and saving the model."""
+import hashlib
 import json
 
 import joblib
 import pandas as pd
 import pytest
 
+from app.classifier import Classifier, load_model
 from training.data import load_dataset
 from training.train import (
     C_VALUES,
+    MODEL_VERSION,
     choose_c,
     compute_metrics,
     cross_validate,
@@ -98,16 +101,25 @@ def test_choose_c_returns_the_best_of_the_values_tried(made_up_data):
 
 def test_saved_model_loads_and_gives_the_same_probabilities(made_up_data, tmp_path):
     model, metrics = train_and_evaluate(made_up_data)
-    model_path, _ = save_model(model, metrics, tmp_path)
+    model_path, _, _ = save_model(model, metrics, tmp_path)
 
     message = ["your account is locked"]
     loaded = joblib.load(model_path)
     assert loaded.predict_proba(message).tolist() == model.predict_proba(message).tolist()
 
 
+def test_saved_checksum_matches_and_load_model_accepts_it(made_up_data, tmp_path):
+    model, metrics = train_and_evaluate(made_up_data)
+    model_path, _, checksum_path = save_model(model, metrics, tmp_path)
+
+    expected = hashlib.sha256(model_path.read_bytes()).hexdigest()
+    assert checksum_path.read_text(encoding="utf-8") == expected
+    assert isinstance(load_model(MODEL_VERSION, tmp_path), Classifier)
+
+
 def test_metrics_file_contains_no_message_text(made_up_data, tmp_path):
     model, metrics = train_and_evaluate(made_up_data)
-    _, metrics_path = save_model(model, metrics, tmp_path)
+    _, metrics_path, _ = save_model(model, metrics, tmp_path)
 
     saved = metrics_path.read_text(encoding="utf-8")
     assert json.loads(saved)["model_version"] == "v1"

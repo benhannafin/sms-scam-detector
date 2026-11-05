@@ -2,6 +2,7 @@
 
 Run with: python -m training.train
 """
+import hashlib
 import json
 from pathlib import Path
 
@@ -102,13 +103,15 @@ def train_and_evaluate(data):
 
 
 def save_model(model, metrics, directory=MODELS_DIR):
-    """Write the model file and its metrics file. Returns (model path, metrics path)."""
+    """Write the model, metrics and checksum files. Returns their paths."""
     directory = Path(directory)
     model_path = directory / f"model_{MODEL_VERSION}.joblib"
     metrics_path = directory / f"model_{MODEL_VERSION}_metrics.json"
+    checksum_path = directory / f"model_{MODEL_VERSION}.sha256"
     joblib.dump(model, model_path)
     metrics_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
-    return model_path, metrics_path
+    checksum_path.write_text(hashlib.sha256(model_path.read_bytes()).hexdigest(), encoding="utf-8")
+    return model_path, metrics_path, checksum_path
 
 
 def main():

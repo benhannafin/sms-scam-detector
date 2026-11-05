@@ -30,7 +30,7 @@ One Flask app. One package per component. Packages talk **only through their int
 | `app/api` | REST API, input validation, rate limiting | `POST /api/check`: `{message}` → `{label, confidence, status, reasons}` |
 | `app/check_service` | Runs a check; applies the Unsure rule | Check a message: text → check result |
 | `app/preprocessor` | Cleans text | Clean the text: raw text → cleaned text |
-| `app/classifier` | ML model (+ a mock with the same interface) | Classify: cleaned text → label + probability per class; Load model: version → model |
+| `app/classifier` | ML model (+ a mock with the same interface) | Classify: cleaned text → label + probability per class + recognised-term count; Load model: version → model |
 | `app/explainer` | Reasons behind a result | Explain: cleaned text + prediction → list of reasons |
 | `training/` | Offline: trains, evaluates and saves the model | Writes `models/` |
 
