@@ -39,12 +39,13 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 4. **Understand** – get a plain-English explanation; write your own short summary in `docs/learning_log.md`.
 5. **Commit and push** – small commits, clear messages.
 6. **Record decisions** – any design change goes in `docs/decisions.md`.
+7. **Hand over** – at the end of every session, update `handover.md`.
 
 ## Stages
 
 | # | Stage | Status |
 | --- | --- | --- |
-| 0 | Project setup | Not started |
+| 0 | Project setup | Done |
 | 1 | Data loading and cleaning | Not started |
 | 2 | Text preprocessor | Not started |
 | 3 | Training pipeline | Not started |
@@ -81,7 +82,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 
 ## Stage 0 – Project setup
 
-**Status:** Not started
+**Status:** Done
 **Goal:** a correctly structured, empty project whose test suite runs with one command.
 
 **In scope:** repo; folder structure matching the architecture; virtual environment and `requirements.txt`; `CLAUDE.md`; `.gitignore`; `README.md` skeleton; `docs/decisions.md` and `docs/learning_log.md`; dataset in `data/` with credit (CC BY 4.0).

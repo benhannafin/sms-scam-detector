@@ -3,7 +3,9 @@
 ## The project
 SMS Scam Detector: a Flask web app where a user pastes a text message and gets **Legitimate**, **Marketing spam** or **Likely scam**, with a confidence level and the reasons. Low-confidence results show **Unsure**. The app never says a message is "safe" and never stores messages.
 
-Read `plan.md` (stages and current status) and `docs/decisions.md` (design decisions and reasoning) at the start of every session.
+At the start of every session, read `handover.md` first (current state and next action), then `plan.md` (stages) and `docs/decisions.md` (design decisions and reasoning).
+
+At the end of every session, update `handover.md` following the instructions at the bottom of that file.
 
 ## Who decides
 The developer makes all design decisions. If something is unclear, or a choice isn't already covered by `plan.md` or `docs/decisions.md`, **ask – don't decide**. Never add a dependency, change an interface, or change the architecture without asking first.
