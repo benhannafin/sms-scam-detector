@@ -30,7 +30,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 020 | Prototype hosting: Azure App Service free tier | Accepted |
 | 021 | Interfaces defined by purpose; exact names fixed during implementation | Accepted |
 | 022 | Data cleaning: normalise labels, remove duplicates and conflicting labels | Superseded by 029 |
-| 023 | Model evaluation: held-out test set + 5-fold cross-validation | Proposed |
+| 023 | Model evaluation: held-out test set + 5-fold cross-validation | Accepted |
 | 024 | Testing the AI with a fixed reference set after every retrain | Proposed |
 | 025 | Irish real-world check uses public warnings only | Accepted |
 | 026 | Primary safety feature: no false reassurance | Accepted |
@@ -38,6 +38,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 028 | Reliability of user feedback labels | Open |
 | 029 | Data loading and cleaning rules | Accepted |
 | 030 | Text preprocessing rules | Accepted |
+| 031 | Training data and model file rules | Accepted |
 
 ---
 
@@ -173,8 +174,9 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Note:** The initial baseline kept one copy of each conflicting message rather than removing them; Stage 1 fixes this.
 
 ## 023 – Model evaluation method
-**Status:** Proposed – confirm
-**Decision:** Stratified 80/20 split with a fixed random seed; final test set used once; model settings chosen with 5-fold cross-validation on training data only.
+**Status:** Accepted (5 Nov 2026)
+**Decision:** Stratified 80/20 split with a fixed random seed (42); final test set used once; model settings chosen with 5-fold cross-validation on training data only. `C` is chosen from 0.1, 1, 10 and 100 by highest macro F1.
+**Alternatives considered:** Choosing `C` by scam-vs-safe recall (it barely changes across these values, 94.5% to 95.7%, and ignores whether the model separates spam from smishing). It is still reported as the main result.
 
 ## 024 – Fixed reference set after every retrain
 **Status:** Proposed – confirm
@@ -215,4 +217,11 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Context:** The design named three tokens but not exactly what each covers. The cleaned dataset also showed that HTML-style codes such as `&lt;#&gt;` and `&amp;` appear in 254 messages, all ham. They are leftovers from how the data was collected, so a model could learn them as a sign of "Legitimate", and someone could paste one into a scam text to exploit that.
 **Decision:** Lowercase; remove HTML-style codes (`&amp;` becomes `&`, placeholders are deleted); then replace links, money and phone numbers, in that order. `urltoken` includes bare domains with a common ending (91 messages). `moneytoken` includes currency symbols with `€`, currency words and codes, and pence rates such as `150p`. `phonetoken` means 7 or more digits, with spaces or dashes allowed (575 messages, 6 of them ham).
 **Alternatives considered:** Leave the HTML-style codes in (keeps the shortcut described above); add an `emailtoken` (not in the design, and words like `gmail` still reach the model when addresses are left as they are); treat 5-digit short codes as `phonetoken` (186 messages, 1 of them ham, but this may reflect old UK premium-rate texts and could cause false alarms on genuine bank or delivery texts).
-**Consequences:** Removing the codes may lower the Stage 3 results a little compared with the baseline, but the score no longer benefits from that shortcut. Short codes are revisited in Stage 11. `�` characters need no handling, because the word-splitting planned for Stage 3 is expected to ignore them; check this when it's built.
+**Consequences:** Removing the codes may lower the Stage 3 results a little compared with the baseline, but the score no longer benefits from that shortcut. Short codes are revisited in Stage 11. `�` characters need no handling, because the word-splitting planned for Stage 3 ignores them (confirmed: none appear in the model's vocabulary).
+
+## 031 – Training data and model file rules
+**Status:** Accepted (5 Nov 2026)
+**Context:** Replacing numbers and amounts with tokens makes many template scam texts identical: 89 more repeats, mostly smishing, and 1 new conflicting message. With them left in, 22 test messages also appeared in the training set. In cross-validation on the training portion, scam-vs-safe recall was 95.7% with repeats left in and 94.6% with them removed, and smishing recall was 90.3% and 85.8%.
+**Decision:** After `clean_text`, keep one copy of each repeated message and remove conflicting messages completely, leaving 5,707 messages. The saved model trains on the 80% training set only. It is saved as `models/model_v1.joblib`, committed to the repo, with scores in `models/model_v1_metrics.json`. Pin `scikit-learn==1.9.1`, because a model saved with one version may fail or misbehave on another. The Stage 3 test checks cross-validation on the training portion (at least 92% scam-vs-safe recall, at most 5% false alarms) instead of reproducing the old baseline.
+**Alternatives considered:** Keep the repeats (scores look better, but are inflated by leakage); retrain on 100% after evaluating (more data, but no untouched data would be left to score that model); run tests against the test set (would break "used once").
+**Consequences:** The honest estimate is just under the 95% target. If the test score is under it, the result is recorded and handled in Stage 11, not by retraining until the test set looks better. The dedupe step lives in training, not in `load_dataset`, because it depends on the preprocessor.

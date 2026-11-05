@@ -19,6 +19,11 @@ def load_dataset(path=DATASET_PATH):
     if unknown:
         raise ValueError(f"Unrecognised labels in dataset: {unknown}")
 
+    return remove_conflicts_and_duplicates(data)
+
+
+def remove_conflicts_and_duplicates(data):
+    """Remove every copy of a message with conflicting labels, then repeated rows."""
     # Conflicts must go first: dropping duplicates can't tell which label is right.
     labels_per_text = data.groupby("text")["label"].transform("nunique")
     data = data[labels_per_text == 1]

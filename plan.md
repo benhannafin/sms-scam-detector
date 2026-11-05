@@ -48,7 +48,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 0 | Project setup | Done |
 | 1 | Data loading and cleaning | Done |
 | 2 | Text preprocessor | Done |
-| 3 | Training pipeline | Not started |
+| 3 | Training pipeline | In progress |
 | 4 | Classifier (+ mock) | Not started |
 | 5 | Explainer | Not started |
 | 6 | Check service | Not started |
@@ -167,9 +167,31 @@ sms-scam-detector/
 **Notes after finishing:** No HTML-style codes remain in the cleaned dataset. Tokens by message: `urltoken` 194 (12 ham), `moneytoken` 471 (16 ham), `phonetoken` 564 (6 ham). Link endings are `.com`, `.net`, `.org`, `.co.uk`, `.org.uk`, `.uk`, `.ie`, `.info`, `.biz`, `.tv` and `.ly`; `.in`, `.me` and `.co` are left out because typos such as `come.in` would count as links. 24 numbers glued to words, such as `call09050000337`, are not matched; review in Stage 11. 65 tests pass.
 
 ## Stage 3 – Training pipeline
+**Status:** In progress
 **Goal:** train TF-IDF + logistic regression, evaluate it, save the model file.
-**Key points:** stratified 80/20 split with a fixed seed; cross-validation on training data only; report per-class metrics, confusion matrix, scam-vs-safe recall and false alarm rate.
-**Key test:** reproduces the baseline (~96% scam-vs-safe recall, ~0.4% false alarms).
+**In scope**, in this order (see decisions 023 and 031):
+1. Load the dataset and run `clean_text` on every message.
+2. Remove repeats created by cleaning: keep one copy of each, and remove the 1 new conflicting message completely (expected: 5,707 messages).
+3. Stratified 80/20 split with seed 42.
+4. 5-fold cross-validation on the training set only, trying `C` of 0.1, 1, 10 and 100; pick the highest macro F1.
+5. Train on the whole training set with that `C`: TF-IDF on words and word pairs, `min_df=2`, `sublinear_tf=True`; `LogisticRegression(class_weight="balanced", max_iter=2000)`.
+6. Score once on the test set: per-class metrics, confusion matrix, macro F1, accuracy, scam-vs-safe recall and false alarm rate.
+7. Save the model and its metrics.
+**Out of scope:** loading the model for the app (Stage 4); the Unsure threshold and probability calibration (Stage 11); retraining to improve the test score. If the score is under the 95% target, record it and handle it in Stage 11.
+**Files:** `training/train.py` (run with `python -m training.train`), `tests/test_train.py`, `models/model_v1.joblib`, `models/model_v1_metrics.json`, `requirements.txt` (pin `scikit-learn==1.9.1`).
+**Interfaces (in → out):** Training writes to `models/`: the model file takes cleaned text; the metrics file holds scores and settings only, never message text.
+**Tests:**
+- On small made-up data: metric calculations are right; the split is repeatable; no message is in both sets; repeats and conflicts created by cleaning are removed; a saved model loads and gives the same probabilities.
+- The metrics file contains no message text.
+- On the real data, using cross-validation on the training portion only: scam-vs-safe recall is at least 92% and false alarms are at most 5%. This never touches the test set.
+**Done when:**
+- [ ] Model and metrics files are saved and committed
+- [ ] `pytest` passes
+- [x] Test-set results are recorded in these notes and in `handover.md`
+- [ ] Plain-English explanation given and `docs/learning_log.md` summary written
+- [ ] Committed
+**Open questions:** none.
+**Notes after finishing:** Chosen `C` is 1. Test set (1,142 messages, used once): scam-vs-safe recall 94.9% (166 of 175), just under the 95% target; false alarms 0.3% (3 of 967); macro F1 0.893; accuracy 97.1%. Handle the shortfall in Stage 11; don't retrain for this test set.
 
 ## Stage 4 – Classifier (+ mock)
 **Goal:** Classify and Load model – cleaned text in, label + probabilities out.

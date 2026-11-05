@@ -1,0 +1,116 @@
+{
+  "model_version": "v1",
+  "scikit_learn_version": "1.9.1",
+  "messages": {
+    "total": 5707,
+    "train": 4565,
+    "test": 1142
+  },
+  "c": 1,
+  "cross_validation_macro_f1_by_c": {
+    "0.1": 0.8807481971719976,
+    "1": 0.8825607689800221,
+    "10": 0.8804787156824431,
+    "100": 0.8718149678715154
+  },
+  "cross_validation": {
+    "scam_vs_safe_recall": 0.9441260744985673,
+    "false_alarm_rate": 0.009050943884147919,
+    "macro_f1": 0.8825607689800221,
+    "accuracy": 0.9658269441401972,
+    "per_class": {
+      "ham": {
+        "precision": 0.9899250839576337,
+        "recall": 0.990949056115852,
+        "f1-score": 0.9904368053760662,
+        "support": 3867.0
+      },
+      "spam": {
+        "precision": 0.8011695906432749,
+        "recall": 0.7942028985507247,
+        "f1-score": 0.7976710334788938,
+        "support": 345.0
+      },
+      "smishing": {
+        "precision": 0.8607954545454546,
+        "recall": 0.8583569405099151,
+        "f1-score": 0.8595744680851064,
+        "support": 353.0
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "ham",
+        "spam",
+        "smishing"
+      ],
+      "rows_true_columns_predicted": [
+        [
+          3832,
+          23,
+          12
+        ],
+        [
+          34,
+          274,
+          37
+        ],
+        [
+          5,
+          45,
+          303
+        ]
+      ]
+    }
+  },
+  "test": {
+    "scam_vs_safe_recall": 0.9485714285714286,
+    "false_alarm_rate": 0.0031023784901758012,
+    "macro_f1": 0.8924813416663904,
+    "accuracy": 0.9711033274956217,
+    "per_class": {
+      "ham": {
+        "precision": 0.9907502569373073,
+        "recall": 0.9968976215098242,
+        "f1-score": 0.9938144329896907,
+        "support": 967.0
+      },
+      "spam": {
+        "precision": 0.8589743589743589,
+        "recall": 0.7701149425287356,
+        "f1-score": 0.8121212121212121,
+        "support": 87.0
+      },
+      "smishing": {
+        "precision": 0.8571428571428571,
+        "recall": 0.8863636363636364,
+        "f1-score": 0.8715083798882681,
+        "support": 88.0
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "ham",
+        "spam",
+        "smishing"
+      ],
+      "rows_true_columns_predicted": [
+        [
+          964,
+          2,
+          1
+        ],
+        [
+          8,
+          67,
+          12
+        ],
+        [
+          1,
+          9,
+          78
+        ]
+      ]
+    }
+  }
+}
