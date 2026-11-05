@@ -46,7 +46,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | # | Stage | Status |
 | --- | --- | --- |
 | 0 | Project setup | Done |
-| 1 | Data loading and cleaning | Not started |
+| 1 | Data loading and cleaning | Done |
 | 2 | Text preprocessor | Not started |
 | 3 | Training pipeline | Not started |
 | 4 | Classifier (+ mock) | Not started |
@@ -121,9 +121,23 @@ sms-scam-detector/
 ---
 
 ## Stage 1 – Data loading and cleaning
-**Goal:** load the CSV and return a clean dataset.
-**Key points:** normalise label spelling; remove exact duplicates; remove the 2 messages with conflicting labels.
-**Key test:** cleaned row counts match expectations.
+**Status:** Done
+**Goal:** load the CSV and return a clean dataset for training.
+**In scope:** read the CSV as UTF-8; keep only `LABEL` and `TEXT`; trim whitespace; normalise label spelling; remove every message with conflicting labels; remove duplicates. Cleaning runs in code on every load; the CSV is never changed and no cleaned copy is saved. See decision 029.
+**Out of scope:** lowercasing and token replacement (Stage 2); train/test split (Stage 3); repairing the `�` characters already in the file.
+**Files:** `training/data.py`, `tests/test_data.py`.
+**Interfaces (in → out):** Load the dataset: `load_dataset(path=<the dataset CSV>)` → pandas DataFrame with columns `label` (`ham`, `spam` or `smishing`) and `text`. Used only by `training/`; the web app never loads the dataset.
+**Tests:**
+- Small temporary CSVs check each rule on its own: UTF-8 `£` is read correctly; only `label` and `text` are returned; whitespace is trimmed; label spelling is normalised; duplicates that differ only by a leading tab become one row; conflicting messages are removed completely, including when one copy has a leading tab.
+- An unrecognised label raises a clear error.
+- The real dataset gives 5,797 rows: 4,834 ham, 528 smishing, 435 spam.
+**Done when:**
+- [x] `load_dataset` returns the cleaned dataset with the expected counts
+- [x] `pytest` passes
+- [x] Plain-English explanation given and `docs/learning_log.md` summary written
+- [x] Committed
+**Open questions:** the Stage 3 key test expects the old baseline figures; cleaning now removes more data, so its expected range needs reviewing at Stage 3.
+**Notes after finishing:** Result is 5,797 messages. The file turned out to be UTF-8, and trimming revealed 34 conflicting messages rather than 2 (decision 029). Unrecognised labels raise a `ValueError`. 13 tests pass.
 
 ## Stage 2 – Text preprocessor
 **Goal:** Clean the text – raw message in, cleaned text out.

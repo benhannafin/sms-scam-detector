@@ -51,4 +51,4 @@ Preprocessor tokens: `urltoken`, `phonetoken`, `moneytoken`.
 - Run all tests: `pytest`
 
 ## Data
-`data/sms_phishing_dataset.csv` – Mishra & Soni (2022), CC BY 4.0. Columns: `LABEL`, `TEXT`, `URL`, `EMAIL`, `PHONE`. Labels are spelled inconsistently ("Spam"/"spam", "Smishing"/"smishing"); 22 messages are duplicated; 2 messages appear with conflicting labels.
+`data/sms_phishing_dataset.csv` – Mishra & Soni (2022), CC BY 4.0. Columns: `LABEL`, `TEXT`, `URL`, `EMAIL`, `PHONE`. UTF-8. Labels are spelled inconsistently ("Spam"/"spam", "Smishing"/"smishing"). Once whitespace is trimmed, 140 rows are repeats, including 34 messages with conflicting labels. Cleaned: 5,797 messages (decision 029).

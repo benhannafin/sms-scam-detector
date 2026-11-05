@@ -29,13 +29,14 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 019 | Prototype scope: Built / Simplified / Deferred | Accepted |
 | 020 | Prototype hosting: Azure App Service free tier | Accepted |
 | 021 | Interfaces defined by purpose; exact names fixed during implementation | Accepted |
-| 022 | Data cleaning: normalise labels, remove duplicates and conflicting labels | Proposed |
+| 022 | Data cleaning: normalise labels, remove duplicates and conflicting labels | Superseded by 029 |
 | 023 | Model evaluation: held-out test set + 5-fold cross-validation | Proposed |
 | 024 | Testing the AI with a fixed reference set after every retrain | Proposed |
 | 025 | Irish real-world check uses public warnings only | Accepted |
 | 026 | Primary safety feature: no false reassurance | Accepted |
 | 027 | Wireframes made in draw.io | Accepted |
 | 028 | Reliability of user feedback labels | Open |
+| 029 | Data loading and cleaning rules | Accepted |
 
 ---
 
@@ -166,7 +167,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Consequences:** Naming changes are recorded here.
 
 ## 022 – Data cleaning
-**Status:** Proposed – confirm
+**Status:** Superseded by 029
 **Decision:** Normalise label spelling; remove 22 exact duplicates; remove the 2 messages with conflicting labels.
 **Note:** The initial baseline kept one copy of each conflicting message rather than removing them; Stage 1 fixes this.
 
@@ -200,3 +201,10 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Context:** Users often don't know whether a message was really a scam – that's why they used the tool – so "this was wrong" reports may be guesses.
 **Options:** (1) ask "How do you know?" and only accept reports with a real reason; (2) only invite feedback after the fact; (3) retrain mainly on verified scam examples from public warnings, with user reports as a supplement; (4) keep as is and record as a limitation.
 **Suggested:** combine 1 and 3. To decide.
+
+## 029 – Data loading and cleaning rules
+**Status:** Accepted (5 Nov 2026)
+**Context:** Checking the real file showed two earlier assumptions were wrong. The file is valid UTF-8; reading it as `latin-1` turns all 283 messages containing `£` into `Â£`. Many messages also appear with and without a leading tab, so the 22 duplicates and 2 conflicts in 022 only hold before trimming. After trimming there are 140 repeated rows, including 34 messages labelled both spam and smishing.
+**Decision:** The code lives in `training/data.py` and cleans on every load, with no cleaned CSV saved. Read as UTF-8; keep only `LABEL` and `TEXT`, because the preprocessor detects links and phone numbers itself and live messages won't have those columns; trim whitespace; normalise label spelling; remove every copy of the 34 conflicting messages; then remove remaining duplicates. Result: 5,797 messages (4,834 ham, 528 smishing, 435 spam).
+**Alternatives considered:** Keep one copy of each conflict labelled smishing (keeps more scam examples, but means choosing labels without evidence); don't trim (5,947 messages, but the same message could land in both the training and test sets, inflating results); `latin-1` (garbles `£`).
+**Consequences:** 98 fewer smishing and 52 fewer spam examples than without trimming. The baseline used different cleaning, so its figures may not reproduce exactly and the Stage 3 expectation needs reviewing. The 185 `�` characters already in the file stay as they are, because they can't be recovered.

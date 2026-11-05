@@ -8,4 +8,4 @@
 
 **Columns:** `LABEL` (ham / spam / smishing), `TEXT`, `URL`, `EMAIL`, `PHONE` (yes/no flags).
 
-**Known issues:** inconsistent label spelling; 22 duplicate messages; 2 messages with conflicting labels.
+**Known issues:** inconsistent label spelling; leading and trailing whitespace; once whitespace is trimmed, 140 repeated rows, including 34 messages with conflicting labels; 185 `�` characters. The file is UTF-8. See decision 029 in `docs/decisions.md`.
