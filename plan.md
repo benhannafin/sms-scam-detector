@@ -47,7 +47,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | --- | --- | --- |
 | 0 | Project setup | Done |
 | 1 | Data loading and cleaning | Done |
-| 2 | Text preprocessor | Not started |
+| 2 | Text preprocessor | Done |
 | 3 | Training pipeline | Not started |
 | 4 | Classifier (+ mock) | Not started |
 | 5 | Explainer | Not started |
@@ -140,9 +140,31 @@ sms-scam-detector/
 **Notes after finishing:** Result is 5,797 messages. The file turned out to be UTF-8, and trimming revealed 34 conflicting messages rather than 2 (decision 029). Unrecognised labels raise a `ValueError`. 13 tests pass.
 
 ## Stage 2 – Text preprocessor
-**Goal:** Clean the text – raw message in, cleaned text out.
-**Key points:** lowercase; replace links, phone numbers and money amounts with `urltoken`, `phonetoken`, `moneytoken`.
-**Key tests:** each token replacement works; empty text doesn't crash.
+**Status:** Done
+**Goal:** Clean the text – raw message in, cleaned text out. Training and live checks both use it, so the model sees text cleaned the same way in both.
+**In scope**, in this order (see decision 030):
+1. Lowercase.
+2. Remove HTML-style codes: `&amp;` becomes `&`; placeholders such as `&lt;#&gt;`, `&lt;decimal&gt;` and `&lt;time&gt;` are deleted.
+3. Links become `urltoken`: `http://`, `https://` and `www.` links, plus bare domains with a common ending (such as `.com`, `.co.uk`, `.ie`).
+4. Money becomes `moneytoken`: currency symbols (`£ $ € ₹`), currency words and codes (`500 pounds`, `rs.2,00,000`, `3gbp`), and pence rates (`150p`, `150ppm`).
+5. Phone numbers of 7 or more digits become `phonetoken`, allowing spaces or dashes between digits.
+**Out of scope:** email addresses, including their domains (left as they are); 5-digit short codes (revisit in Stage 11); `�` characters; calling this from training (Stage 3); validating input (Stage 7).
+**Files:** `app/preprocessor/cleaner.py`, `app/preprocessor/__init__.py`, `tests/test_preprocessor.py`.
+**Interfaces (in → out):** Clean the text: `clean_text(text)` → cleaned text (both strings), imported with `from app.preprocessor import clean_text`.
+**Tests:**
+- Text is lowercased.
+- `&amp;` becomes `&`; placeholders are removed.
+- Each form of link, money and phone number gets the right token.
+- Ordering: `www.07781482378.com` gives one `urltoken`; `£1000000` gives `moneytoken`, not `phonetoken`.
+- Left unchanged: email addresses, 5-digit codes, and numbers under 7 digits.
+- Empty and whitespace-only text doesn't crash.
+**Done when:**
+- [x] `clean_text` passes all of the above
+- [x] `pytest` passes
+- [x] Plain-English explanation given and `docs/learning_log.md` summary written
+- [x] Committed
+**Open questions:** none.
+**Notes after finishing:** No HTML-style codes remain in the cleaned dataset. Tokens by message: `urltoken` 194 (12 ham), `moneytoken` 471 (16 ham), `phonetoken` 564 (6 ham). Link endings are `.com`, `.net`, `.org`, `.co.uk`, `.org.uk`, `.uk`, `.ie`, `.info`, `.biz`, `.tv` and `.ly`; `.in`, `.me` and `.co` are left out because typos such as `come.in` would count as links. 24 numbers glued to words, such as `call09050000337`, are not matched; review in Stage 11. 65 tests pass.
 
 ## Stage 3 – Training pipeline
 **Goal:** train TF-IDF + logistic regression, evaluate it, save the model file.

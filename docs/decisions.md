@@ -37,6 +37,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 027 | Wireframes made in draw.io | Accepted |
 | 028 | Reliability of user feedback labels | Open |
 | 029 | Data loading and cleaning rules | Accepted |
+| 030 | Text preprocessing rules | Accepted |
 
 ---
 
@@ -208,3 +209,10 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Decision:** The code lives in `training/data.py` and cleans on every load, with no cleaned CSV saved. Read as UTF-8; keep only `LABEL` and `TEXT`, because the preprocessor detects links and phone numbers itself and live messages won't have those columns; trim whitespace; normalise label spelling; remove every copy of the 34 conflicting messages; then remove remaining duplicates. Result: 5,797 messages (4,834 ham, 528 smishing, 435 spam).
 **Alternatives considered:** Keep one copy of each conflict labelled smishing (keeps more scam examples, but means choosing labels without evidence); don't trim (5,947 messages, but the same message could land in both the training and test sets, inflating results); `latin-1` (garbles `£`).
 **Consequences:** 98 fewer smishing and 52 fewer spam examples than without trimming. The baseline used different cleaning, so its figures may not reproduce exactly and the Stage 3 expectation needs reviewing. The 185 `�` characters already in the file stay as they are, because they can't be recovered.
+
+## 030 – Text preprocessing rules
+**Status:** Accepted (5 Nov 2026)
+**Context:** The design named three tokens but not exactly what each covers. The cleaned dataset also showed that HTML-style codes such as `&lt;#&gt;` and `&amp;` appear in 254 messages, all ham. They are leftovers from how the data was collected, so a model could learn them as a sign of "Legitimate", and someone could paste one into a scam text to exploit that.
+**Decision:** Lowercase; remove HTML-style codes (`&amp;` becomes `&`, placeholders are deleted); then replace links, money and phone numbers, in that order. `urltoken` includes bare domains with a common ending (91 messages). `moneytoken` includes currency symbols with `€`, currency words and codes, and pence rates such as `150p`. `phonetoken` means 7 or more digits, with spaces or dashes allowed (575 messages, 6 of them ham).
+**Alternatives considered:** Leave the HTML-style codes in (keeps the shortcut described above); add an `emailtoken` (not in the design, and words like `gmail` still reach the model when addresses are left as they are); treat 5-digit short codes as `phonetoken` (186 messages, 1 of them ham, but this may reflect old UK premium-rate texts and could cause false alarms on genuine bank or delivery texts).
+**Consequences:** Removing the codes may lower the Stage 3 results a little compared with the baseline, but the score no longer benefits from that shortcut. Short codes are revisited in Stage 11. `�` characters need no handling, because the word-splitting planned for Stage 3 is expected to ignore them; check this when it's built.
