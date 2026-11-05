@@ -2,7 +2,7 @@
 
 **Read this first.** This file lets any AI assistant (or person) pick up the project with no prior context. It's updated at the end of every working session. For full detail, it points to the other files in this repo.
 
-**Last updated:** 5 Nov 2026 · **Current stage:** 3 – Training pipeline (not started)
+**Last updated:** 5 Nov 2026 · **Current stage:** 4 – Classifier + mock (not started)
 
 ---
 
@@ -30,7 +30,7 @@
 | --- | --- |
 | `handover.md` | This file – current state and next steps |
 | `plan.md` | Architecture summary, conventions, workflow, all stages with status and detail |
-| `docs/decisions.md` | Architecture decision record: 30 decisions with context, alternatives and consequences |
+| `docs/decisions.md` | Architecture decision record: 31 decisions with context, alternatives and consequences |
 | `CLAUDE.md` | Standing instructions for Claude Code (also useful for any AI) |
 | `docs/learning_log.md` | Developer's own summaries after each stage |
 | `README.md` | Setup and run instructions |
@@ -59,7 +59,13 @@ Designed but **not built** (target design only): feedback API (`POST /api/feedba
 - Cleaned dataset (decision 029): 5,797 messages – 4,834 ham, 528 smishing, 435 spam
 - Many spam/smishing texts are older UK messages; others were collected in India
 
-**Baseline results** (exploratory run, before the repo existed; 80/20 stratified split, seed 42, 1,190 test messages):
+**Stage 3 model** (`models/model_v1.joblib`, `C=1`; 5,707 messages after removing repeats; test set of 1,142 messages, used once – don't tune against it):
+
+| Scam-vs-safe recall | False alarms | Macro F1 | Accuracy | Smishing recall | Spam recall |
+| --- | --- | --- | --- | --- | --- |
+| 94.9% (166/175) – just under the target | 0.3% (3/967) | 0.893 | 97.1% | 88.6% | 77.0% |
+
+**Baseline results** (superseded by the above; exploratory run, before the repo existed; 80/20 stratified split, seed 42, 1,190 test messages):
 
 | Model | Smishing recall | Spam recall | Macro F1 | Accuracy |
 | --- | --- | --- | --- | --- |
@@ -88,17 +94,18 @@ pytest
 | 0 | Project setup | Done (repo created, env working, 2 tests passing, pushed) |
 | 1 | Data loading and cleaning | Done (`training/data.py`, 13 tests passing, pushed) |
 | 2 | Text preprocessor | Done (`app/preprocessor`, 65 tests passing, pushed) |
-| 3–12 | Training → classifier → explainer → check service → API → web UI → deploy → usability → tuning → hardening | Not started |
+| 3 | Training pipeline | Done (`training/train.py`, `models/model_v1.joblib`, 76 tests passing, pushed) |
+| 4–12 | Classifier → explainer → check service → API → web UI → deploy → usability → tuning → hardening | Not started |
 
 ## 8. Next action
 
-Plan **Stage 3** (training pipeline): fill in its section in `plan.md`, get approval, then build. Include reviewing the key test's expected range, and confirm that TF-IDF ignores `�` characters (decision 030).
+Plan **Stage 4** (classifier + mock): fill in its section in `plan.md`, get approval, then build.
 
 ## 9. Open questions and pending decisions
 
 - **Phone numbers glued to words** – 24 cases such as `call09050000337` aren't matched by `phonetoken`, all in spam or smishing. Left as they are for now; can be reviewed in Stage 11.
-- **Stage 3 key test** – it expects the old baseline figures, but cleaning now removes more data, so its expected range needs reviewing.
-- **"Proposed" entries in `docs/decisions.md`** (017, 018, 023, 024) – suggested details the developer hasn't confirmed: Azure Blob/SQL storage, Application Insights, 5-fold cross-validation, reference-set check after retraining.
+- **95% target** – the test score is 94.9% scam-vs-safe recall, just under the target. Handle it in Stage 11 (decision 031), not by retraining for this test set.
+- **"Proposed" entries in `docs/decisions.md`** (017, 018, 024) – suggested details the developer hasn't confirmed: Azure Blob/SQL storage, Application Insights, reference-set check after retraining.
 - **Decision 028 (Open)** – user feedback labels may be unreliable because users often don't know the truth. Suggested: ask "How do you know?" and retrain mainly on verified public-warning examples.
 - **Optional later experiment** – compare against a fine-tuned DistilBERT model.
 
@@ -108,6 +115,7 @@ Newest first. One entry per session: what was done, what was decided, what's nex
 
 | Date | Summary |
 | --- | --- |
+| 5 Nov 2026 | Stage 3 done: model v1 trained on 5,707 messages after removing repeats created by cleaning (decisions 023, 031). Test set used once: 94.9% scam-vs-safe recall, just under the target, and 0.3% false alarms. scikit-learn pinned to 1.9.1. Next: plan Stage 4. |
 | 5 Nov 2026 | Stage 2 done: `clean_text()` built and tested. HTML-style codes appeared only in ham, so they are now removed to stop the model using them as a shortcut (decision 030). Next: plan Stage 3. |
 | 5 Nov 2026 | Stage 1 done: `load_dataset()` built and tested. Checking the real file showed it's UTF-8 and that trimming reveals 34 conflicting messages; all removed, leaving 5,797 messages (decision 029, replacing 022). `handover.md` now tracked. Next: plan Stage 2. |
 | 5 Nov 2026 | Repo `sms-scam-detector` created from the starter (structure, CLAUDE.md, plan.md, decisions.md, dataset, tests). Python is installed but not on PATH – `py` used to create the venv. 2 tests pass; pushed. Stage 1 planning started; five decisions pending. `handover.md` added. |

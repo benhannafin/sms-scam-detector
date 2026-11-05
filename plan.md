@@ -48,7 +48,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 0 | Project setup | Done |
 | 1 | Data loading and cleaning | Done |
 | 2 | Text preprocessor | Done |
-| 3 | Training pipeline | In progress |
+| 3 | Training pipeline | Done |
 | 4 | Classifier (+ mock) | Not started |
 | 5 | Explainer | Not started |
 | 6 | Check service | Not started |
@@ -167,7 +167,7 @@ sms-scam-detector/
 **Notes after finishing:** No HTML-style codes remain in the cleaned dataset. Tokens by message: `urltoken` 194 (12 ham), `moneytoken` 471 (16 ham), `phonetoken` 564 (6 ham). Link endings are `.com`, `.net`, `.org`, `.co.uk`, `.org.uk`, `.uk`, `.ie`, `.info`, `.biz`, `.tv` and `.ly`; `.in`, `.me` and `.co` are left out because typos such as `come.in` would count as links. 24 numbers glued to words, such as `call09050000337`, are not matched; review in Stage 11. 65 tests pass.
 
 ## Stage 3 – Training pipeline
-**Status:** In progress
+**Status:** Done
 **Goal:** train TF-IDF + logistic regression, evaluate it, save the model file.
 **In scope**, in this order (see decisions 023 and 031):
 1. Load the dataset and run `clean_text` on every message.
@@ -185,11 +185,11 @@ sms-scam-detector/
 - The metrics file contains no message text.
 - On the real data, using cross-validation on the training portion only: scam-vs-safe recall is at least 92% and false alarms are at most 5%. This never touches the test set.
 **Done when:**
-- [ ] Model and metrics files are saved and committed
-- [ ] `pytest` passes
+- [x] Model and metrics files are saved and committed
+- [x] `pytest` passes
 - [x] Test-set results are recorded in these notes and in `handover.md`
-- [ ] Plain-English explanation given and `docs/learning_log.md` summary written
-- [ ] Committed
+- [x] Plain-English explanation given and `docs/learning_log.md` summary written
+- [x] Committed
 **Open questions:** none.
 **Notes after finishing:** Chosen `C` is 1. Test set (1,142 messages, used once): scam-vs-safe recall 94.9% (166 of 175), just under the 95% target; false alarms 0.3% (3 of 967); macro F1 0.893; accuracy 97.1%. Handle the shortfall in Stage 11; don't retrain for this test set.
 
