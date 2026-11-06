@@ -30,8 +30,8 @@ One Flask app. One package per component. Packages talk **only through their int
 | `app/api` | REST API, input validation, rate limiting | `POST /api/check`: `{message}` → `{label, confidence, status, reasons}` |
 | `app/check_service` | Runs a check; applies the Unsure rule | Check a message: text → check result |
 | `app/preprocessor` | Cleans text | Clean the text: raw text → cleaned text |
-| `app/classifier` | ML model (+ a mock with the same interface) | Classify: cleaned text → label + probability per class + recognised-term count; Load model: version → model |
-| `app/explainer` | Reasons behind a result | Explain: cleaned text + prediction → list of reasons |
+| `app/classifier` | ML model (+ a mock with the same interface) | Classify: cleaned text → label + probability per class + recognised-term count + term contributions; Load model: version → model |
+| `app/explainer` | Reasons behind a result | Explain: cleaned text + prediction → up to 3 reasons (for Legitimate: signs to be careful of) |
 | `training/` | Offline: trains, evaluates and saves the model | Writes `models/` |
 
 Labels: `ham` (shown as Legitimate), `spam` (Marketing spam), `smishing` (Likely scam).
@@ -39,7 +39,7 @@ Preprocessor tokens: `urltoken`, `phonetoken`, `moneytoken`.
 
 ## Rules
 - **Never write message text to disk or logs** (including error messages and debug output).
-- Never use the word "safe" in any user-facing result.
+- Never use the word "safe" in any user-facing result. The only exception is a reason quoting a word from the user's own message, such as "safety" (decision 033).
 - No secrets, keys or passwords in the code.
 - No external AI services – the model runs inside the app.
 - Keep the same interfaces between packages; if one must change, ask first and record it in `docs/decisions.md`.

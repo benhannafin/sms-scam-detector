@@ -1,5 +1,5 @@
 """Load the saved model and classify cleaned text (rules in decision 032)."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import hashlib
 from pathlib import Path
 import warnings
@@ -7,6 +7,7 @@ import warnings
 import joblib
 from sklearn.exceptions import InconsistentVersionWarning
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 MODELS_DIR = Path(__file__).resolve().parent.parent.parent / "models"
@@ -21,6 +22,8 @@ class Prediction:
     label: str
     probabilities: dict
     recognised_terms: int
+    # For each term in the message: how much it added to (or took from) each class's score.
+    contributions: dict = field(default_factory=dict)
 
 
 class Classifier:
@@ -28,6 +31,9 @@ class Classifier:
 
     def __init__(self, model):
         self._model = model
+        self._vectorizer = model.named_steps["tfidfvectorizer"]
+        self._weights = model.named_steps["logisticregression"].coef_
+        self._terms = self._vectorizer.get_feature_names_out()
 
     def classify(self, cleaned_text):
         """Return a Prediction for one cleaned message."""
@@ -35,12 +41,23 @@ class Classifier:
         probabilities = {
             label: float(score) for label, score in zip(self._model.classes_, scores)
         }
-        vectorizer = self._model.named_steps["tfidfvectorizer"]
+        features = self._vectorizer.transform([cleaned_text])
         return Prediction(
             label=max(probabilities, key=probabilities.get),
             probabilities=probabilities,
-            recognised_terms=vectorizer.transform([cleaned_text]).nnz,
+            recognised_terms=features.nnz,
+            contributions=self._contributions(features),
         )
+
+    def _contributions(self, features):
+        # Each term's contribution to a class is its TF-IDF value times its learned weight.
+        return {
+            str(self._terms[index]): {
+                label: float(value * self._weights[row, index])
+                for row, label in enumerate(self._model.classes_)
+            }
+            for index, value in zip(features.indices, features.data)
+        }
 
 
 def load_model(version, directory=MODELS_DIR):
@@ -74,5 +91,5 @@ def _is_usable(model):
     return (
         isinstance(model, Pipeline)
         and isinstance(model.named_steps.get("tfidfvectorizer"), TfidfVectorizer)
-        and hasattr(model, "predict_proba")
+        and isinstance(model.named_steps.get("logisticregression"), LogisticRegression)
     )

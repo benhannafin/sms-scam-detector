@@ -16,8 +16,8 @@ Layered modular monolith: one Flask app, one module per component, modules talk 
 | API | `api` | `POST /api/check`: `{message}` → `{label, confidence, status, reasons}` |
 | Application | `check_service` | Check a message: text → check result (applies the Unsure rule) |
 | ML | `preprocessor` | Clean the text: raw text → cleaned text with tokens |
-| ML | `classifier` | Classify: cleaned text → label + probability per class + recognised-term count; Load model: version → model |
-| ML | `explainer` | Explain: cleaned text + prediction → list of reasons |
+| ML | `classifier` | Classify: cleaned text → label + probability per class + recognised-term count + term contributions; Load model: version → model |
+| ML | `explainer` | Explain: cleaned text + prediction → up to 3 reasons (for Legitimate: signs to be careful of) |
 | Offline | `training` | Trains, evaluates and saves the model file |
 
 Not built yet (designed for later): feedback API, feedback service and store, scheduled retraining, monitoring.
@@ -50,7 +50,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 2 | Text preprocessor | Done |
 | 3 | Training pipeline | Done |
 | 4 | Classifier (+ mock) | Done |
-| 5 | Explainer | Not started |
+| 5 | Explainer | Done |
 | 6 | Check service | Not started |
 | 7 | REST API | Not started |
 | 8 | Web UI | Not started |
@@ -220,8 +220,33 @@ sms-scam-detector/
 **Notes after finishing:** 99 tests pass. The model file is unchanged; only its checksum was added. A mismatched scikit-learn version is refused by turning its warning into an error. Fields on `Prediction` can't be reassigned, but its `probabilities` dictionary can still be edited; nothing does this.
 
 ## Stage 5 – Explainer
-**Goal:** Explain – cleaned text + prediction in, reasons out.
-**Key test:** every reason refers to something actually in the message.
+**Status:** Done
+**Goal:** Explain – cleaned text + prediction in, up to 3 reasons out (see decision 033).
+**In scope:**
+- The classifier adds `contributions` to `Prediction`: for each term in the message, how much it added to or took from each class's score (TF-IDF value × learned weight). The mock's default is empty.
+- `explain(cleaned_text, prediction)` returns a list of `Reason(term, text)`:
+  - **Spam or smishing:** the terms that added most to that label.
+  - **Ham:** the terms that took most from ham, meaning they pointed towards spam or scam, shown as signs to be careful of. If there are none, one reason with no term: "No common scam signs found". The words that made it look legitimate are never shown.
+  - Up to 3 reasons, biggest first. Only terms with a strength of at least 0.15 count, for every label. A term is skipped if it shares a word with one already chosen.
+- Wording: `urltoken` → "Contains a link"; `moneytoken` → "Mentions an amount of money"; `phonetoken` → "Contains a phone number"; a word → 'Uses the word "claim"'; a pair → 'Uses the phrase "call [phone number]"'.
+**Out of scope:** whether Unsure results show reasons (Stage 6); highlighting terms in the original message (Stage 8); showing the numbers to users.
+**Files:** `app/explainer/explainer.py`, `app/explainer/__init__.py`, `tests/test_explainer.py`, `app/classifier/classifier.py`, `app/classifier/mock.py`, `tests/test_classifier.py`.
+**Interfaces (in → out):** Classify: cleaned text → `Prediction(label, probabilities, recognised_terms, contributions)`. Explain: cleaned text + `Prediction` → list of `Reason(term, text)`. `explain` and `Reason` are imported from `app.explainer`.
+**Tests:**
+- Every reason's term is in the cleaned message.
+- Spam and smishing reasons are the biggest contributions to that label, in order.
+- Ham shows only terms that took from ham; with none, "No common scam signs found".
+- Terms weaker than 0.15 are not reasons.
+- No more than 3 reasons; overlapping terms are skipped.
+- Each token and pair gets the right wording; our own wording never contains "safe".
+- Real classifier: contributions cover exactly the message's terms; made-up examples give sensible reasons.
+**Done when:**
+- [x] `explain` and the new `contributions` field pass all of the above
+- [x] `pytest` passes
+- [x] Plain-English explanation given and `docs/learning_log.md` summary written
+- [x] Committed
+**Open questions:** none.
+**Notes after finishing:** 128 tests pass. Added the 0.15 minimum strength after building, because otherwise filler words became warning signs on nearly every Legitimate result (decision 033). The explainer copies the model's rule for splitting text into words, so it can check every term is in the message; if training's word-splitting changes, update the explainer to match. The classifier's usable-model check now also requires the logistic regression step.
 
 ## Stage 6 – Check service
 **Goal:** Check a message – runs preprocessor → classifier → explainer and applies the Unsure rule.

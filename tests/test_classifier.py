@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 
 import joblib
+import numpy as np
 import pytest
 import sklearn.base
 
@@ -102,15 +103,30 @@ def test_label_is_the_most_probable_class(classifier):
     assert prediction.probabilities[prediction.label] == max(prediction.probabilities.values())
 
 
-def test_probabilities_are_matched_to_the_right_labels():
-    # Fixed scores in the model's own order show each one reaches the right label.
+def test_scores_are_matched_to_the_right_labels_and_terms():
+    # Fixed numbers in the model's own order show each one reaches the right label and term.
+    class FakeFeatures:
+        nnz = 2
+        indices = [2, 0]
+        data = [0.5, 0.25]
+
     class FakeVectorizer:
         def transform(self, texts):
-            return type("Result", (), {"nnz": 2})()
+            return FakeFeatures()
+
+        def get_feature_names_out(self):
+            return ["claim", "later", "urltoken"]
+
+    class FakeRegression:
+        coef_ = np.array([
+            [-1.0, 2.0, -2.0],  # ham
+            [3.0, 0.0, 1.0],    # smishing
+            [-2.0, -2.0, 1.0],  # spam
+        ])
 
     class FakeModel:
         classes_ = ["ham", "smishing", "spam"]
-        named_steps = {"tfidfvectorizer": FakeVectorizer()}
+        named_steps = {"tfidfvectorizer": FakeVectorizer(), "logisticregression": FakeRegression()}
 
         def predict_proba(self, texts):
             return [[0.2, 0.5, 0.3]]
@@ -120,7 +136,24 @@ def test_probabilities_are_matched_to_the_right_labels():
         label="smishing",
         probabilities={"ham": 0.2, "smishing": 0.5, "spam": 0.3},
         recognised_terms=2,
+        contributions={
+            "urltoken": {"ham": -1.0, "smishing": 0.5, "spam": 0.5},
+            "claim": {"ham": -0.25, "smishing": 0.75, "spam": -0.5},
+        },
     )
+
+
+def test_contributions_cover_exactly_the_message_terms(classifier):
+    # The model ignores one-letter words, so "a" is skipped and "win prize" is a pair.
+    possible = {"win", "prize", "call", "phonetoken", "win prize", "prize call", "call phonetoken"}
+    prediction = classifier.classify("win a prize call phonetoken")
+    assert {"prize", "call", "phonetoken"} <= set(prediction.contributions) <= possible
+    assert len(prediction.contributions) == prediction.recognised_terms
+    assert all(set(scores) == LABELS for scores in prediction.contributions.values())
+
+
+def test_no_recognised_terms_means_no_contributions(classifier):
+    assert classifier.classify("xyzzy qwertyuiop").contributions == {}
 
 
 def test_probabilities_are_plain_numbers(classifier):
