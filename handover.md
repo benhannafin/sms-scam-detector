@@ -2,7 +2,7 @@
 
 **Read this first.** This file lets any AI assistant (or person) pick up the project with no prior context. It's updated at the end of every working session. For full detail, it points to the other files in this repo.
 
-**Last updated:** 6 Nov 2026 · **Current stage:** 6 – Check service (not started)
+**Last updated:** 6 Nov 2026 · **Current stage:** 7 – REST API (not started)
 
 ---
 
@@ -30,7 +30,7 @@
 | --- | --- |
 | `handover.md` | This file – current state and next steps |
 | `plan.md` | Architecture summary, conventions, workflow, all stages with status and detail |
-| `docs/decisions.md` | Architecture decision record: 33 decisions with context, alternatives and consequences |
+| `docs/decisions.md` | Architecture decision record: 34 decisions with context, alternatives and consequences |
 | `CLAUDE.md` | Standing instructions for Claude Code (also useful for any AI) |
 | `docs/learning_log.md` | Developer's own summaries after each stage |
 | `README.md` | Setup and run instructions |
@@ -97,11 +97,12 @@ pytest
 | 3 | Training pipeline | Done (`training/train.py`, `models/model_v1.joblib`, 76 tests passing, pushed) |
 | 4 | Classifier (+ mock) | Done (`app/classifier`, 99 tests passing, pushed) |
 | 5 | Explainer | Done (`app/explainer`, 128 tests passing, pushed) |
-| 6–12 | Check service → API → web UI → deploy → usability → tuning → hardening | Not started |
+| 6 | Check service | Done (`app/check_service`, 148 tests passing, pushed) |
+| 7–12 | API → web UI → deploy → usability → tuning → hardening | Not started |
 
 ## 8. Next action
 
-Plan **Stage 6** (check service): fill in its section in `plan.md`, get approval, then build. It must show Unsure when `recognised_terms` is 0 (decision 032), and needs decisions on the Unsure threshold placeholder until Stage 11, and on whether Unsure results show reasons.
+Plan **Stage 7** (REST API): fill in its section in `plan.md`, get approval, then build. It creates `CheckService` once with the real model at startup, and needs decisions on the maximum message length, the rate limit, error responses, and how reasons appear in the JSON.
 
 ## 9. Open questions and pending decisions
 
@@ -118,6 +119,7 @@ Newest first. One entry per session: what was done, what was decided, what's nex
 
 | Date | Summary |
 | --- | --- |
+| 6 Nov 2026 | Stage 6 done: check service built. `status` defined as `rated`, `low_confidence` or `no_recognised_terms`; Unsure threshold placeholder 0.7; Unsure never shows "No common scam signs found" (decision 034). Stage 11's carried-over list added to `plan.md`. Next: plan Stage 7. |
 | 6 Nov 2026 | Stage 5 done: explainer built. Legitimate results show only signs to be careful of, or "No common scam signs found", after the "Hi mum" scam came out as ham because of `my` and `me`. Terms under 0.15 are dropped. Reasons may quote message words containing "safe" (decision 033). Next: plan Stage 6. |
 | 5 Nov 2026 | Stage 4 done: classifier and mock built. Added a recognised-term count, because text with no known words came out as 83% ham, and a model checksum, because some damaged files load normally (decision 032). So far the developer has asked Claude to draft each learning log entry. Next: plan Stage 5. |
 | 5 Nov 2026 | Stage 3 done: model v1 trained on 5,707 messages after removing repeats created by cleaning (decisions 023, 031). Test set used once: 94.9% scam-vs-safe recall, just under the target, and 0.3% false alarms. scikit-learn pinned to 1.9.1. Next: plan Stage 4. |
