@@ -42,6 +42,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 032 | Classifier result, model file checks and mock | Accepted |
 | 033 | Explainer: how reasons are chosen and worded | Accepted |
 | 034 | Check result fields and Unsure rules | Accepted |
+| 035 | REST API: limits, errors and startup | Accepted |
 
 ---
 
@@ -126,6 +127,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Context:** Scammers could repeatedly test their texts until one is rated Legitimate.
 **Decision:** Limit checks per client. Prototype: one fixed limit (e.g. Flask-Limiter).
 **Consequences:** Security risk mitigation.
+**Note (6 Nov 2026):** The limit is 20 checks per hour per IP address (see 035). On Azure App Service, requests arrive through Microsoft's front end, so without Werkzeug's `ProxyFix` every user can look like the same IP address and share one limit. Add it in Stage 9.
 
 ## 014 – Feedback loop in target design only
 **Status:** Accepted (20 Oct 2026)
@@ -251,3 +253,10 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Decision:** `label` is `ham`, `spam`, `smishing` or `unsure`. `status` says why: `rated`, `low_confidence` or `no_recognised_terms`. `confidence` is the top probability, or empty when nothing was recognised. No recognised terms always gives Unsure (see 032). Below the threshold, the placeholder 0.7, the result is Unsure with the explainer's reasons for the most likely label, but never "No common scam signs found", which next to Unsure could read as reassurance. The threshold applies to every label, as in 005. `CheckService` is given its classifier when created, so tests can use the mock. Display names and the verify reminder belong to the web pages (Stage 8).
 **Alternatives considered:** Keep the model's label and use `status` alone to flag Unsure (the UI could show a Legitimate label on an Unsure result by mistake); 0.8 (more than 1 in 5 messages Unsure); no reasons on Unsure (users get nothing to judge with); apply the threshold only to Legitimate results (at 0.7, 230 Unsure messages instead of 451, catching the same 28 dangerous ones; to try in Stage 11).
 **Consequences:** About 1 in 10 messages may show Unsure until Stage 11 tunes the threshold. Low confidence partly reflects the balanced class weights, so calibration is checked in Stage 11.
+
+## 035 – REST API: limits, errors and startup
+**Status:** Accepted (6 Nov 2026)
+**Context:** The API needed a maximum length, a rate limit, error responses and a plan for a model that fails to load. The longest message in the dataset is 910 characters, and 99% are under 275. Flask 3.1.3 and Flask-Limiter 4.1.1 are already dependencies.
+**Decision:** An app factory, `create_app(classifier=None)`, loads the model once at startup and creates one `CheckService`; tests pass the mock. `POST /api/check` lives in an `api` blueprint. Messages must be text, not empty or only spaces, and at most 1,000 characters; requests over 16 KB are refused before they're read. The limit is 20 checks per hour per IP address, in memory. Every error is `{"error": {"code", "message"}}` and never repeats the user's text. `confidence` is unrounded. If the model fails to load, the app still starts and checks return 503 `model_unavailable`.
+**Alternatives considered:** A higher length limit such as 1,600 characters (no message in the data comes close to 1,000); a per-minute limit (allows far more bulk testing per day); round `confidence` (0.6999 could show as 0.70 next to an Unsure label); refuse to start without the model (the whole site would be down instead of showing that the checker is unavailable).
+**Consequences:** People sharing one network share the limit, which may matter in Stage 10. Memory storage resets on restart, which suits one free-tier server (019). The web pages handle display rounding. `ProxyFix` is needed on Azure (013).

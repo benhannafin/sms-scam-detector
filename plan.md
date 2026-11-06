@@ -52,7 +52,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 4 | Classifier (+ mock) | Done |
 | 5 | Explainer | Done |
 | 6 | Check service | Done |
-| 7 | REST API | Not started |
+| 7 | REST API | Done |
 | 8 | Web UI | Not started |
 | 9 | Deployment (Azure App Service) | Not started |
 | 10 | Usability testing and fixes | Not started |
@@ -275,8 +275,37 @@ sms-scam-detector/
 **Notes after finishing:** 148 tests pass. On made-up messages, an AIB-style scam (58%) and an Eir bill (48%) come out as Unsure, and the "Hi mum" scam is still ham at 91%, which the threshold can't fix (Stage 11).
 
 ## Stage 7 – REST API
-**Goal:** `POST /api/check` with input validation and rate limiting.
-**Key tests:** empty, over-long and malformed input return clear errors; requests beyond the limit are refused; valid requests return all fields.
+**Status:** Done
+**Goal:** `POST /api/check` with input validation and rate limiting (see decision 035).
+**In scope:**
+- `create_app(classifier=None)` in `app/__init__.py` is the app factory. With no classifier given, it loads model `v1` once at startup and creates one `CheckService`; tests pass a `MockClassifier`. If the model fails to load, the app still starts, checks return 503, and the failure is logged without any message text.
+- `app/api` is a blueprint with `POST /api/check`. The request body is JSON: `{"message": "..."}`.
+- Validation, in order:
+  1. The body isn't a JSON object, or `message` is missing or not text → 400 `invalid_request`.
+  2. `message` is empty or only spaces → 400 `empty_message`.
+  3. `message` is over 1,000 characters → 400 `too_long`.
+  4. Requests over 16 KB in total are refused before they're read → 413 `request_too_large`.
+- Success → 200 `{"label", "confidence", "status", "reasons": [{"term", "text"}]}`, with `confidence` unrounded (`null` when nothing was recognised).
+- Rate limit: 20 checks per hour per IP address on `/api/check`, using Flask-Limiter with memory storage → 429 `rate_limited`.
+- Model unavailable → 503 `model_unavailable`; any other failure → 500 `internal_error`.
+- Every error has the shape `{"error": {"code": "...", "message": "..."}}`, and no error ever repeats the user's text.
+**Out of scope:** web pages (Stage 8); `ProxyFix` for real client IP addresses on Azure (Stage 9, see decision 013); tuning the limit (Stage 10).
+**Files:** `app/__init__.py`, `app/api/__init__.py`, `app/api/routes.py`, `tests/test_api.py`.
+**Interfaces (in → out):** `POST /api/check`: `{message}` → `{label, confidence, status, reasons}`, or an error as above. `create_app` is imported from `app`.
+**Tests:**
+- A valid request returns 200 with every field, and reasons as `{term, text}`.
+- Each validation rule returns the right status and code: not JSON, not an object, missing `message`, `message` not text, empty, only spaces, 1,001 characters (1,000 is accepted), and a body over 16 KB.
+- The 21st request within an hour returns 429 `rate_limited`.
+- A failed model load returns 503 `model_unavailable`; an unexpected error returns 500 `internal_error`.
+- The message text never appears in any response's error or in the logs, for success and for every error.
+- The real model works through the API on a made-up message.
+**Done when:**
+- [x] `POST /api/check` passes all of the above
+- [x] `pytest` passes
+- [x] Plain-English explanation given and `docs/learning_log.md` summary written
+- [x] Committed
+**Open questions:** none.
+**Notes after finishing:** 171 tests pass. The real server's log, tested over HTTP, shows only the method, path and status code, never the message. Failed requests also count towards the rate limit. Importing anything from `app` now loads Flask, including when `training` uses the preprocessor.
 
 ## Stage 8 – Web UI
 **Goal:** check, result and problem-with-input pages, plus example messages.
@@ -284,6 +313,7 @@ sms-scam-detector/
 
 ## Stage 9 – Deployment
 **Goal:** the app running on Azure App Service (free tier), with message text kept out of logs.
+**Carried over:** add Werkzeug's `ProxyFix`, so the rate limit sees each user's real IP address instead of Azure's front end (decisions 013, 035).
 
 ## Stage 10 – Usability testing and fixes
 **Goal:** people unfamiliar with the app try it; record where they hesitate or misread results; fix what they find.
