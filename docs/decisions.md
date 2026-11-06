@@ -41,6 +41,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 031 | Training data and model file rules | Accepted |
 | 032 | Classifier result, model file checks and mock | Accepted |
 | 033 | Explainer: how reasons are chosen and worded | Accepted |
+| 034 | Check result fields and Unsure rules | Accepted |
 
 ---
 
@@ -243,3 +244,10 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Change after building (6 Nov 2026):** On ordinary made-up texts, showing every term that took from ham gave filler warning signs such as `on` and `the` on nearly every Legitimate result. Only terms with a strength of at least 0.15 now count, for every label. "Pick up milk on the way home" then shows "No common scam signs found", and the "Hi mum" text still shows `new` (0.20) and `send` (0.15). The cut-off was chosen by eye and is revisited in Stage 10. Rejected: keep every term (noise teaches people to ignore warnings); show only links, money and phone numbers for Legitimate (the "Hi mum" text would show "No common scam signs found").
 **"Safe" in quoted words:** `safe`, `be safe` and `safe trip` all point towards ham, so they can never be reasons. `safety` points towards smishing and can be quoted. A reason may quote a word from the user's own message even if it contains "safe", because that's the message's wording, not our verdict. Our own wording never uses it. CLAUDE.md's rule is updated to match.
 **Consequences:** A Legitimate result never cites words as evidence that a message is genuine. Reasons can be everyday words such as `your`, or odd ones such as `running`, when the model really did rely on them. The "Hi mum" case is a model weakness to test in Stage 11.
+
+## 034 – Check result fields and Unsure rules
+**Status:** Accepted (6 Nov 2026)
+**Context:** The API returns `{label, confidence, status, reasons}`, but `status` was never defined. Cross-validation on the training portion (4,565 messages) showed the model is less confident when it's wrong. With Unsure below a top probability of 0.7, 9.9% of messages showed Unsure, catching 115 of 156 wrong answers and 28 of the 39 spam or scam messages rated ham. At 0.8 it was 22.0% of messages and 33 of 39. Even correct ham answers had a median confidence of only 88%.
+**Decision:** `label` is `ham`, `spam`, `smishing` or `unsure`. `status` says why: `rated`, `low_confidence` or `no_recognised_terms`. `confidence` is the top probability, or empty when nothing was recognised. No recognised terms always gives Unsure (see 032). Below the threshold, the placeholder 0.7, the result is Unsure with the explainer's reasons for the most likely label, but never "No common scam signs found", which next to Unsure could read as reassurance. The threshold applies to every label, as in 005. `CheckService` is given its classifier when created, so tests can use the mock. Display names and the verify reminder belong to the web pages (Stage 8).
+**Alternatives considered:** Keep the model's label and use `status` alone to flag Unsure (the UI could show a Legitimate label on an Unsure result by mistake); 0.8 (more than 1 in 5 messages Unsure); no reasons on Unsure (users get nothing to judge with); apply the threshold only to Legitimate results (at 0.7, 230 Unsure messages instead of 451, catching the same 28 dangerous ones; to try in Stage 11).
+**Consequences:** About 1 in 10 messages may show Unsure until Stage 11 tunes the threshold. Low confidence partly reflects the balanced class weights, so calibration is checked in Stage 11.

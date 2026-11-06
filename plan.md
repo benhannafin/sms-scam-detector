@@ -51,7 +51,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 3 | Training pipeline | Done |
 | 4 | Classifier (+ mock) | Done |
 | 5 | Explainer | Done |
-| 6 | Check service | Not started |
+| 6 | Check service | Done |
 | 7 | REST API | Not started |
 | 8 | Web UI | Not started |
 | 9 | Deployment (Azure App Service) | Not started |
@@ -249,8 +249,30 @@ sms-scam-detector/
 **Notes after finishing:** 128 tests pass. Added the 0.15 minimum strength after building, because otherwise filler words became warning signs on nearly every Legitimate result (decision 033). The explainer copies the model's rule for splitting text into words, so it can check every term is in the message; if training's word-splitting changes, update the explainer to match. The classifier's usable-model check now also requires the logistic regression step.
 
 ## Stage 6 – Check service
-**Goal:** Check a message – runs preprocessor → classifier → explainer and applies the Unsure rule.
-**Key tests:** low confidence returns Unsure; no recognised terms returns Unsure (decision 032); "safe" never appears in a result.
+**Status:** Done
+**Goal:** Check a message – runs preprocessor → classifier → explainer and applies the Unsure rules (see decision 034).
+**In scope:**
+- `CheckService(classifier, threshold=UNSURE_THRESHOLD)`, where the classifier can be real or mock and `UNSURE_THRESHOLD = 0.7` is a placeholder until Stage 11.
+- `service.check(message)` runs `clean_text`, then `classify`, then `explain`, and returns a read-only `CheckResult(label, confidence, status, reasons)`. The rules are applied in this order:
+  1. **No recognised terms:** label `unsure`, status `no_recognised_terms`, confidence empty, no reasons.
+  2. **Top probability under the threshold:** label `unsure`, status `low_confidence`, confidence is the top probability, and reasons are the explainer's reasons for the most likely label, without "No common scam signs found".
+  3. **Otherwise:** label `ham`, `spam` or `smishing`, status `rated`, confidence is the top probability, and reasons as the explainer gives them.
+- `app.explainer` also exports `NO_SIGNS`, so the check service can recognise that reason without reaching into the explainer.
+**Out of scope:** display names such as "Legitimate" and the verify reminder (Stage 8); input validation, including empty messages (Stage 7); creating the service with the real model at startup (Stage 7); tuning the threshold (Stage 11).
+**Files:** `app/check_service/service.py`, `app/check_service/__init__.py`, `tests/test_check_service.py`, `app/explainer/__init__.py`.
+**Interfaces (in → out):** Check a message: text → `CheckResult(label, confidence, status, reasons)`, where reasons are the explainer's `Reason(term, text)` items. `CheckService`, `CheckResult` and `UNSURE_THRESHOLD` are imported from `app.check_service`.
+**Tests:**
+- Using the mock: confidence of exactly 0.7 is rated and just under is Unsure; no recognised terms gives Unsure with no confidence and no reasons, even when the top probability is high; Unsure never includes "No common scam signs found", but keeps other reasons; a rated result keeps the explainer's reasons.
+- The message is cleaned before it reaches the classifier.
+- Nothing is logged during a check.
+- Using the real classifier on made-up messages: results have the right shape, and no result's label, status or our own reason wording contains "safe".
+**Done when:**
+- [x] `CheckService` passes all of the above
+- [x] `pytest` passes
+- [ ] Plain-English explanation given and `docs/learning_log.md` summary written
+- [ ] Committed
+**Open questions:** none.
+**Notes after finishing:**
 
 ## Stage 7 – REST API
 **Goal:** `POST /api/check` with input validation and rate limiting.
@@ -268,6 +290,7 @@ sms-scam-detector/
 
 ## Stage 11 – Tuning and evaluation
 **Goal:** choose the Unsure threshold; test on Irish scam examples from public warnings; measure against targets (≥95% scam-vs-safe recall, ≤5% false alarms).
+**Carried over:** the 94.9% test score (decision 031); check probability calibration; try applying the threshold only to Legitimate results (decision 034); test the "Hi mum" scam and messages with few recognised words (decisions 032, 033); review 5-digit short codes and numbers glued to words (decision 030).
 
 ## Stage 12 – Failure handling and hardening
 **Goal:** the app behaves sensibly when the model fails or gives poor output; edge cases covered by tests.
