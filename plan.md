@@ -269,10 +269,10 @@ sms-scam-detector/
 **Done when:**
 - [x] `CheckService` passes all of the above
 - [x] `pytest` passes
-- [ ] Plain-English explanation given and `docs/learning_log.md` summary written
-- [ ] Committed
+- [x] Plain-English explanation given and `docs/learning_log.md` summary written
+- [x] Committed
 **Open questions:** none.
-**Notes after finishing:**
+**Notes after finishing:** 148 tests pass. On made-up messages, an AIB-style scam (58%) and an Eir bill (48%) come out as Unsure, and the "Hi mum" scam is still ham at 91%, which the threshold can't fix (Stage 11).
 
 ## Stage 7 – REST API
 **Goal:** `POST /api/check` with input validation and rate limiting.
