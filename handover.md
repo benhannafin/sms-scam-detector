@@ -2,7 +2,7 @@
 
 **Read this first.** This file lets any AI assistant (or person) pick up the project with no prior context. It's updated at the end of every working session. For full detail, it points to the other files in this repo.
 
-**Last updated:** 7 Nov 2026 · **Current stage:** 9 – Deployment (not started)
+**Last updated:** 7 Nov 2026 · **Current stage:** 9 – Deployment (in progress)
 
 ---
 
@@ -30,7 +30,7 @@
 | --- | --- |
 | `handover.md` | This file – current state and next steps |
 | `plan.md` | Architecture summary, conventions, workflow, all stages with status and detail |
-| `docs/decisions.md` | Architecture decision record: 36 decisions with context, alternatives and consequences |
+| `docs/decisions.md` | Architecture decision record: 37 decisions with context, alternatives and consequences |
 | `CLAUDE.md` | Standing instructions for Claude Code (also useful for any AI) |
 | `docs/learning_log.md` | Developer's own summaries after each stage |
 | `docs/ui-design.md` | Approved UI design spec for Stage 8 |
@@ -84,7 +84,7 @@ Logistic regression: 96.0% scam-vs-safe recall (214/223 spam+smishing not rated 
 ```powershell
 py -m venv .venv            # 'python' isn't on PATH on the dev machine; use 'py' for this step
 .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 pytest
 ```
 
@@ -105,7 +105,7 @@ pytest
 
 ## 8. Next action
 
-Plan **Stage 9** (deployment to Azure App Service, free tier): fill in its section in `plan.md`, get approval, then build. It must add `ProxyFix` so the rate limit sees real IP addresses (decisions 013, 035), use a production server instead of Flask's development server, and keep message text out of all logs (012). Run the app locally with `flask --app app run`.
+Finish **Stage 9**: the local parts are built and 239 tests pass. Commit them, then the developer deploys with the README's "Deploy to Azure" commands (the zip only contains committed files), runs `scripts/smoke_test.py` against `https://sms-scam-detector-ie.azurewebsites.net` (last with `--rate-limit`), and checks the log stream for message text. If anything fails, read the error output together. The app name is `sms-scam-detector-ie`, because `sms-scam-detector` was taken.
 
 ## 9. Open questions and pending decisions
 
