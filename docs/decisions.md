@@ -43,6 +43,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 033 | Explainer: how reasons are chosen and worded | Accepted |
 | 034 | Check result fields and Unsure rules | Accepted |
 | 035 | REST API: limits, errors and startup | Accepted |
+| 036 | UI design: desktop-first neumorphic soft UI | Accepted |
 
 ---
 
@@ -203,6 +204,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Status:** Accepted (4 Nov 2026)
 **Decision:** Low-fidelity wireframes in draw.io (open source, Apache-2.0, connected to Claude), three screens: check, result, problem with input.
 **Alternatives considered:** Balsamiq; Excalidraw; Penpot.
+**Note (7 Nov 2026):** Stage 8 builds from the approved spec in `docs/ui-design.md` (see 036).
 
 ## 028 – Reliability of user feedback labels
 **Status:** Open
@@ -260,3 +262,35 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Decision:** An app factory, `create_app(classifier=None)`, loads the model once at startup and creates one `CheckService`; tests pass the mock. `POST /api/check` lives in an `api` blueprint. Messages must be text, not empty or only spaces, and at most 1,000 characters; requests over 16 KB are refused before they're read. The limit is 20 checks per hour per IP address, in memory. Every error is `{"error": {"code", "message"}}` and never repeats the user's text. `confidence` is unrounded. If the model fails to load, the app still starts and checks return 503 `model_unavailable`.
 **Alternatives considered:** A higher length limit such as 1,600 characters (no message in the data comes close to 1,000); a per-minute limit (allows far more bulk testing per day); round `confidence` (0.6999 could show as 0.70 next to an Unsure label); refuse to start without the model (the whole site would be down instead of showing that the checker is unavailable).
 **Consequences:** People sharing one network share the limit, which may matter in Stage 10. Memory storage resets on restart, which suits one free-tier server (019). The web pages handle display rounding. `ProxyFix` is needed on Azure (013).
+
+## 036 – UI design: desktop-first neumorphic soft UI
+**Status:** Accepted (7 Nov 2026)
+**Context:** The web UI needed a visual style and interaction rules that suit a tool people use when they're unsure or worried about a text. Three earlier mobile-first directions and a cooler neumorphic version were explored before this one was approved. The full spec is in `docs/ui-design.md`.
+**Decision:**
+- **Layout:** desktop-first, content up to 72rem wide, adapting to phones. Columns stack below about 900px, and the layout must work at 390px wide with no horizontal scrolling.
+- **Style:** neumorphism (soft UI). Everything shares one surface colour, a warm neutral base `#e6e2dd`, and shapes come only from a light and a dark shadow. One physical rule is used everywhere: raised means pressable, sunken means type here or read this, and flat means plain text.
+- **Colour:** the accent is coral `#e17055`, with near-black text on it because white fails contrast. Each result has its own colour set (ink, fill, highlight and highlight text): Likely scam red (`#9f1d14` / `#c0392b`), Marketing spam amber (`#8a4b08` / `#d68910`), Looks legitimate blue (`#2f4f7f` / `#4a6fa5`), and Unsure purple (`#55468a` / `#7a6bb0`). Legitimate is blue, not green, and its icon is a speech bubble, not a tick, so it never implies "safe".
+- **Interaction (Apple-style):** controls respond instantly on press (raised to sunken, scale 0.98, 120 ms). There are four kinds of feedback: status, completion, warning and error. Errors appear inline under the text box, never as a pop-up, and the user's text is kept. The result appears in place with a short, critically damped fade and scale (no bounce).
+- **Accessibility safeguards:**
+  - **Contrast and targets:** text contrast is at least 4.5:1, and touch targets are at least 44px.
+  - **Respecting user settings:** sizes are in rem, so the layout follows the browser's text-size setting, and the reduced-motion, reduced-transparency and high-contrast settings are respected.
+  - **Controls and screen readers:** the focus ring is always visible. Real buttons, links, labels and text areas are used (no clickable `<div>`s). The error is linked to the text box with `aria-describedby` and `aria-invalid`, and the verdict is the page's `<h1>`.
+  - **Wording:** "safe" is never used, and every result carries the "can be wrong" reminder.
+**Alternatives considered:** Three earlier mobile directions: calm and clear, bold verdict, and message-style. A cooler neumorphic version.
+**Consequences:**
+- **Verdict wording:** the ham verdict reads "Looks legitimate" rather than decision 005's "Legitimate", which softens the claim in line with 004.
+- **Visual soundness:** neumorphism relies on subtle shadows that can be hard to see, so the high-contrast setting adds solid outlines. Checking the spec's colours showed every text pair passes 4.5:1, but the coral focus ring is 2.45:1 against the base, under the 3:1 that outlines need (see the Stage 8 open questions).
+- **Fonts:** Nunito comes from Google Fonts, so pages make one request to Google. It doesn't carry the message.
+- **Source of truth:** this spec, not the draw.io wireframes (027), is what Stage 8 builds from.
+
+**Clarifications for Stage 8 (7 Nov 2026):** where the spec didn't decide, or didn't fit the API:
+- **No "Closest match" on Unsure:** the API doesn't return it (034), and "Closest match: Looks legitimate" could reassure.
+- **Unsure with nothing recognised:** shows no meter.
+- **Looks legitimate with warning signs:** uses the heading "Signs to be careful of" and a matching summary, because the explainer gives signs to be careful of for ham (033).
+- **Highlighting:** covers words and word pairs only, so links, money and phone numbers aren't highlighted. The alternatives were adding positions to the API, or copying the preprocessor's patterns into JavaScript.
+- **Rate limit and unavailable errors:** each gets its own message.
+- **Confidence:** rounded down and capped at 99%, so Unsure never shows 70% and nothing claims 100%.
+- **Focus ring:** uses `#a8432c` (4.65:1), because the accent is under 3:1.
+- **Without JavaScript:** a `<noscript>` notice.
+- **"Check another message":** a button that clears the text box.
+- **Examples:** made-up texts with no real organisation names, worded so each chip shows a different result.

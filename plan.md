@@ -53,7 +53,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 5 | Explainer | Done |
 | 6 | Check service | Done |
 | 7 | REST API | Done |
-| 8 | Web UI | Not started |
+| 8 | Web UI | Done |
 | 9 | Deployment (Azure App Service) | Not started |
 | 10 | Usability testing and fixes | Not started |
 | 11 | Tuning and evaluation | Not started |
@@ -308,8 +308,77 @@ sms-scam-detector/
 **Notes after finishing:** 171 tests pass. The real server's log, tested over HTTP, shows only the method, path and status code, never the message. Failed requests also count towards the rate limit. Importing anything from `app` now loads Flask, including when `training` uses the preprocessor.
 
 ## Stage 8 – Web UI
-**Goal:** check, result and problem-with-input pages, plus example messages.
-**Key check:** matches the wireframes; works on a phone-sized screen.
+**Status:** Done
+**Goal:** the home page (check a message) and the result, built to `docs/ui-design.md` (see decision 036), matching the spec at desktop width and at 390px wide with no horizontal scrolling.
+**In scope:**
+- A `web` blueprint with `GET /`, registered in `create_app`. It renders one page holding the home view, the checking and problem-with-input states, and the result view. The result appears in place, as the spec's motion section describes, so the message never needs to go into a URL or be stored.
+- `base.html`: header, Nunito from Google Fonts, the CSS and JavaScript files.
+- `index.html`: the home view, with headline, lead, privacy notice, card with label, text box, helper row, live counter, **Check message** button and three example chips; **How it works**; the checking status bar; the inline error; the result view; and the reminder row. It also holds four hidden `<template>` blocks with each result's verdict, icon, summary and "What to do" text from spec section 5, so all the wording lives in HTML.
+- `styles.css`: every design token in spec section 2, exactly as written, plus typography, components, pressed states, motion, the reduced-motion, reduced-transparency and high-contrast settings, and the 900px and 600px breakpoints.
+- `check.js`:
+  - **Counter:** counts characters the same way as the API, so emoji count as one. `MAX` comes from `app.api.MAX_MESSAGE_LENGTH` through the template, not typed in again.
+  - **Example chips:** each fills the text box with its sample message.
+  - **Sending:** **Check message** sends `fetch("POST /api/check", {message})` and shows the checking state while it waits.
+  - **Showing the result:** the right `<template>` is filled with the confidence, reasons and highlights from the response. The message text is only ever inserted with `textContent`, never `innerHTML`, so a message can't inject HTML.
+  - **Errors:** shown inline, keeping the text and returning focus to the box. Responses are mapped to messages as shown in the table below.
+  - **"Check another message":** returns to the home view.
+- The message is kept only in the page's memory: no `localStorage`, `sessionStorage`, cookies or console output, and it's sent nowhere except `/api/check`.
+
+**How the pages use `POST /api/check`:**
+
+| Response | What the page shows |
+| --- | --- |
+| 200, `label` `smishing` / `spam` / `ham` | Likely scam / Marketing spam / Looks legitimate result, with "Confidence N%", meter, reasons and highlights |
+| 200, `label` `unsure`, `status` `low_confidence` | Unsure result: "N%, too low to rate", with no "Closest match" line |
+| 200, `label` `unsure`, `status` `no_recognised_terms` | Unsure result with no meter: "We didn't recognise enough of this message to rate it." |
+| 400 `empty_message` | "**The box is empty.** …" |
+| 400 `too_long` | "**That message is too long.** …" with MAX |
+| 400 `invalid_request`, 413, 500, network failure | "**We couldn't check that message.** Please try again." |
+| 429 `rate_limited` | "**You've checked a lot of messages.** Please wait a while and try again." |
+| 503 `model_unavailable` | "**The checker isn't available right now.** Please try again later." |
+
+**Out of scope:** new API fields (unless an open question decides otherwise); deployment (Stage 9); changes from usability testing (Stage 10); the Unsure threshold (Stage 11).
+**Files:** `app/web/__init__.py`, `app/web/routes.py`, `app/web/templates/base.html`, `app/web/templates/index.html`, `app/web/static/css/styles.css`, `app/web/static/js/check.js`, `app/__init__.py` (register the blueprint), `tests/test_web.py`, `README.md` (how to run the app).
+**Tests** (pytest with Flask's test client; no new dependency):
+- `GET /` returns 200 with the headline, lead, privacy notice, a `<label>` linked to the `<textarea>`, `aria-describedby` for the error, the counter showing the API's MAX, three example chips, **How it works** and the reminder.
+- The four result templates contain the spec's exact verdict, summary and "What to do" text; the verdict is an `<h1>`; the ham icon isn't a tick.
+- No page, template, CSS or JavaScript text contains "safe".
+- `styles.css` defines every token in spec section 2 with the exact value, `:focus-visible`, and the three accessibility media queries.
+- `check.js` never uses `innerHTML`, `localStorage`, `sessionStorage` or `console`.
+- The CSS and JavaScript files are served; `GET /` isn't rate limited; the API tests still pass.
+- Each example message, sent through the real model, gives its intended result.
+**Manual checks**, recorded in the notes: at desktop width (about 1280px) and at 390px wide, every state matches the spec with no horizontal scrolling; keyboard-only use works with a visible focus ring; reduced motion and high contrast settings behave as the spec says.
+**Done when:**
+- [x] Home and result views and all their states match the spec at desktop and at 390px, with no horizontal scrolling
+- [x] Manual checks done and recorded
+- [x] `pytest` passes
+- [x] Plain-English explanation given and `docs/learning_log.md` summary written
+- [x] Committed
+**Open questions** – all answered 7 Nov 2026, where the spec didn't decide (recorded in decision 036):
+1. **Unsure closest match:** no "Closest match" line, because the API doesn't return it and "Closest match: Looks legitimate" could reassure. Show "N%, too low to rate".
+2. **Nothing recognised:** no meter; "We didn't recognise enough of this message to rate it."
+3. **Looks legitimate with warning signs:** when the reasons include signs, the heading is "Signs to be careful of", the summary is "We found no strong scam or spam signs, but some words are worth a second look.", and the note is "Highlighted: words that are sometimes found in scams or spam." With "No common scam signs found", the spec's text stays.
+4. **Unsure with no reasons:** "There were no clear signs either way."
+5. **Highlighting:** only words and word pairs are highlighted; link, money and phone number reasons appear in the list but aren't highlighted. No API change.
+6. **429 and 503:** the specific messages in the table above.
+7. **Examples:** made-up texts with no real organisation names, reworded until Parcel fee gives Likely scam, Prize offer gives Marketing spam, and Friend running late gives Looks legitimate through the real model.
+8. **Confidence:** always rounded down, so Unsure always shows under 70%, and capped at 99%.
+9. **Focus ring:** `#a8432c` (4.65:1) instead of the accent (2.45:1). Meter fills stay as specified, because the percentage text carries the information.
+10. **Without JavaScript:** a `<noscript>` notice that the checker needs JavaScript.
+11. **Header:** on home, one nav link, "How it works", jumping to that section; on the result, "← Check another message" is a button, because it acts in place.
+12. **Check another message:** clears the text box and puts focus in it.
+13. **Fonts:** Nunito from Google Fonts, as the spec says.
+14. **Visual check:** done by hand in the browser's dev tools at 1280px and 390px, using a checklist in the notes. No new dependency.
+**Notes after finishing:**
+- **Screenshots (7 Nov, by Claude):** headless Edge, driven by a throwaway script outside the repo, captured 10 states at 1280px and at a true 390px (inside a 390px frame, because headless windows won't go below about 500px). The states were home, checking, empty error, too-long error, the three examples, an Unsure (low confidence) message, the "Hi mum" text, and nothing recognised. All matched the spec, and in every state at 390px the page was exactly 390px wide with no horizontal scrolling.
+- **Fixes from the screenshots:** hid the focus ring on the verdict heading, because focus moves there for screen readers but it isn't a control; and reduced the highlight padding.
+- **Checked by hand (developer, 7 Nov): all good.**
+  - [x] Keyboard only: Tab through home, chips, Check message, result and Check another message; the focus ring is always visible.
+  - [x] Pressing a button turns it sunken immediately.
+  - [x] Reduced motion (Windows: Settings → Accessibility → Visual effects → Animation effects off): no scaling, only fades.
+  - [x] High contrast (`prefers-contrast: more`, in dev tools → Rendering): outlines appear on raised and sunken surfaces.
+  - [x] A real phone, or dev tools device mode at 390px: no sideways scrolling.
+- 226 tests pass.
 
 ## Stage 9 – Deployment
 **Goal:** the app running on Azure App Service (free tier), with message text kept out of logs.
@@ -320,7 +389,7 @@ sms-scam-detector/
 
 ## Stage 11 – Tuning and evaluation
 **Goal:** choose the Unsure threshold; test on Irish scam examples from public warnings; measure against targets (≥95% scam-vs-safe recall, ≤5% false alarms).
-**Carried over:** the 94.9% test score (decision 031); check probability calibration; try applying the threshold only to Legitimate results (decision 034); test the "Hi mum" scam and messages with few recognised words (decisions 032, 033); review 5-digit short codes and numbers glued to words (decision 030).
+**Carried over:** parcel-fee scams with only a link (no phone number) came out as Unsure at 62% and 69% in Stage 8, though that's how most current parcel scams look; the 94.9% test score (decision 031); check probability calibration; try applying the threshold only to Legitimate results (decision 034); test the "Hi mum" scam and messages with few recognised words (decisions 032, 033); review 5-digit short codes and numbers glued to words (decision 030).
 
 ## Stage 12 – Failure handling and hardening
 **Goal:** the app behaves sensibly when the model fails or gives poor output; edge cases covered by tests.

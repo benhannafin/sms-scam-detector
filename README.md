@@ -20,7 +20,12 @@ pytest
 
 ## Run the app
 
-_Added once the web app is built._
+```powershell
+.venv\Scripts\Activate.ps1
+flask --app app run
+```
+
+Then open http://127.0.0.1:5000 in a browser.
 
 ## Project structure
 

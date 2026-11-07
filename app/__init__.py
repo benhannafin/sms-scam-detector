@@ -6,6 +6,7 @@ from flask_limiter.util import get_remote_address
 from app.api import RATE_LIMIT, api, error_response
 from app.check_service import CheckService
 from app.classifier import ModelLoadError, load_model
+from app.web import web
 
 MODEL_VERSION = "v1"
 MAX_REQUEST_BYTES = 16 * 1024
@@ -28,6 +29,7 @@ def create_app(classifier=None):
     limiter = Limiter(get_remote_address, app=app, storage_uri="memory://")
     limiter.limit(RATE_LIMIT)(api)
     app.register_blueprint(api)
+    app.register_blueprint(web)
 
     @app.errorhandler(413)
     def request_too_large(error):
