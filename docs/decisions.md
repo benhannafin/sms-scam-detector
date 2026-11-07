@@ -44,6 +44,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 034 | Check result fields and Unsure rules | Accepted |
 | 035 | REST API: limits, errors and startup | Accepted |
 | 036 | UI design: desktop-first neumorphic soft UI | Accepted |
+| 037 | Deployment: Gunicorn, real client addresses, Azure CLI | Accepted |
 
 ---
 
@@ -294,3 +295,26 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 - **Without JavaScript:** a `<noscript>` notice.
 - **"Check another message":** a button that clears the text box.
 - **Examples:** made-up texts with no real organisation names, worded so each chip shows a different result.
+
+## 037 – Deployment: Gunicorn, real client addresses, Azure CLI
+**Status:** Accepted (7 Nov 2026)
+**Context:** Deploying to Azure App Service (008, 020) needed a production server and a way to deploy. It also raised four risks:
+- **Rate limit never triggering:** Azure's front end passes the client address as `1.2.3.4:56789`, so without removing the port every connection could look like a new user.
+- **Limit multiplied:** the limiter counts in memory, so several server processes would each allow 20 checks an hour.
+- **Unsuitable server:** Flask's development server isn't meant for public use.
+- **Storage:** the free tier has 1 GB, while `requirements.txt` included pandas and pytest, which the website never loads.
+
+The local Python is 3.13.5, and the Azure CLI wasn't installed. `sms-scam-detector.azurewebsites.net` was already taken by someone else.
+**Decision:**
+- **Server:** Gunicorn, with 1 process, 4 threads and no access log.
+- **Client address:** `ProxyFix(x_for=1)`, and the rate limit's key removes the port.
+- **Requirements:** split into `requirements.txt` (the website only) and `requirements-dev.txt` (adds pandas and pytest).
+- **Hosting:** a free Linux F1 plan in North Europe (Dublin), Python 3.13, HTTPS only, at `sms-scam-detector-ie.azurewebsites.net`.
+- **Deploying:** the developer runs Azure CLI commands from the README, deploying a `git archive` zip of committed files only.
+- **Smoke test:** a script checks the live site, including that the 21st check is refused.
+**Alternatives considered:** Waitress (also runs on Windows, but is less standard on Azure); several Gunicorn processes (would multiply the limit unless it moved to shared storage such as Redis, a new paid service); the VS Code Azure extension (clicks, harder to repeat); GitHub Actions (deploys on every push, but needs secrets and more setup); Claude creating the cloud resources (needs the developer's login and creates public resources); one requirements file (installs about 100 MB the site never uses).
+**Consequences:**
+- **Local running:** Gunicorn doesn't run on Windows, so local development keeps `flask --app app run`.
+- **Throughput:** one process limits how many checks can run at once, which is fine for a prototype.
+- **Unconfirmed address format:** the `:port` format is expected but must be confirmed on the live site, which the smoke test's `--rate-limit` check does.
+- **Free-tier sleeping:** the site sleeps after about 20 minutes idle, and the first visit afterwards is slow (020).

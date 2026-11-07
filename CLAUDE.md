@@ -47,7 +47,9 @@ Preprocessor tokens: `urltoken`, `phonetoken`, `moneytoken`.
 
 ## Commands
 - Activate the environment: `.venv\Scripts\Activate.ps1`
-- Install: `pip install -r requirements.txt`
+- Install: `pip install -r requirements-dev.txt` (`requirements.txt` is the website only – what Azure installs)
+- Run the app locally: `flask --app app run`
+- Deploy: see "Deploy to Azure" in `README.md` (the developer runs these commands)
 - Run all tests: `pytest`
 
 ## Data

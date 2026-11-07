@@ -54,7 +54,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 6 | Check service | Done |
 | 7 | REST API | Done |
 | 8 | Web UI | Done |
-| 9 | Deployment (Azure App Service) | Not started |
+| 9 | Deployment (Azure App Service) | In progress |
 | 10 | Usability testing and fixes | Not started |
 | 11 | Tuning and evaluation | Not started |
 | 12 | Failure handling and hardening | Not started |
@@ -381,8 +381,35 @@ sms-scam-detector/
 - 226 tests pass.
 
 ## Stage 9 – Deployment
-**Goal:** the app running on Azure App Service (free tier), with message text kept out of logs.
+**Status:** In progress
+**Goal:** the app running at `https://sms-scam-detector-ie.azurewebsites.net` on Azure App Service (free tier), with message text kept out of logs and the rate limit working per user (see decision 037).
 **Carried over:** add Werkzeug's `ProxyFix`, so the rate limit sees each user's real IP address instead of Azure's front end (decisions 013, 035).
+**In scope:**
+- **Real client address:** `create_app` uses `ProxyFix(x_for=1)` to trust the one address Azure's front end adds, and the rate limit's key removes any `:port` from it, because Azure sends `1.2.3.4:56789`.
+- **Production server:** Gunicorn, configured in `gunicorn.conf.py`: 1 process (the limiter counts in memory, per process), 4 threads, port 8000, access log off. Azure starts it with `gunicorn "app:create_app()"`. Locally, `flask --app app run` stays as it is.
+- **Requirements split:** `requirements.txt` holds only what the website needs (Flask, Flask-Limiter, scikit-learn, joblib, Gunicorn); `requirements-dev.txt` includes it and adds pandas and pytest. README and CLAUDE.md install with `requirements-dev.txt`.
+- **Azure (run by the developer from the README):** install the Azure CLI (`winget install Microsoft.AzureCLI`), sign in, then create the resource group, the free Linux F1 plan in North Europe (Dublin) and the web app (Python 3.13, HTTPS only, build on deploy, startup command). Package only committed files with `git archive` and deploy the zip.
+- **Logging:** Gunicorn's access log off; Azure's request logs and Application Insights stay off (decisions 012, 018). The app only logs errors, never message text.
+- **Smoke test:** `scripts/smoke_test.py <url>`, standard library only, checks that the home page loads, HTTP redirects to HTTPS, an example gets its expected result, and an empty message gets `empty_message`. With `--rate-limit`, it also checks that the 21st check is refused, which uses up that hour's limit.
+**Out of scope:** automatic deployment from GitHub; a custom domain; Application Insights (018); "Always On" (not in the free tier); usability changes (Stage 10).
+**Files:** `app/__init__.py`, `gunicorn.conf.py`, `requirements.txt`, `requirements-dev.txt`, `scripts/smoke_test.py`, `tests/test_deploy.py`, `README.md`, `CLAUDE.md`.
+**Interfaces (in → out):** unchanged. `gunicorn "app:create_app()"` is the production entry point.
+**Tests:**
+- Behind one proxy, requests with `X-Forwarded-For: 1.2.3.4:56789` and `1.2.3.4:40000` share one limit, so the 21st is refused; a different address has its own limit.
+- A spoofed extra `X-Forwarded-For` entry from the user doesn't change which address is counted.
+- The limit key removes the port from IPv4 and keeps IPv6 addresses intact.
+- `gunicorn.conf.py` sets 1 worker and no access log.
+- `requirements.txt` lists only the website's packages, with scikit-learn still pinned to 1.9.1, and `requirements-dev.txt` includes it.
+- The smoke test's checks pass against a local server.
+**Done when:**
+- [x] Code, config and tests done; `pytest` passes
+- [ ] Developer has deployed with the README commands
+- [ ] Smoke test passes against the live site, including `--rate-limit`
+- [ ] The live log stream shows no message text after a check
+- [ ] Plain-English explanation given and `docs/learning_log.md` summary written
+- [ ] Committed
+**Open questions:** none.
+**Notes after finishing:**
 
 ## Stage 10 – Usability testing and fixes
 **Goal:** people unfamiliar with the app try it; record where they hesitate or misread results; fix what they find.
