@@ -2,7 +2,7 @@
 
 **Read this first.** This file lets any AI assistant (or person) pick up the project with no prior context. It's updated at the end of every working session. For full detail, it points to the other files in this repo.
 
-**Last updated:** 7 Nov 2026 · **Current stage:** 9 – Deployment (in progress)
+**Last updated:** 13 Nov 2026 · **Current stage:** 10 – Usability testing (planning)
 
 ---
 
@@ -101,11 +101,13 @@ pytest
 | 6 | Check service | Done (`app/check_service`, 148 tests passing, pushed) |
 | 7 | REST API | Done (`app/api`, `create_app`, 171 tests passing, pushed) |
 | 8 | Web UI | Done (`app/web`, 226 tests passing, checked at 1280px and 390px, pushed) |
-| 9–12 | Deploy → usability → tuning → hardening | Not started |
+| 9 | Deployment | Done (live at `https://sms-scam-detector-ie.azurewebsites.net`, free F1 in Belgium Central, all live checks passed, pushed) |
+| 10 | Usability testing and fixes | **Planning** |
+| 11–12 | Tuning → hardening | Not started |
 
 ## 8. Next action
 
-Finish **Stage 9**: the local parts are built and 239 tests pass. Commit them, then the developer deploys with the README's "Deploy to Azure" commands (the zip only contains committed files), runs `scripts/smoke_test.py` against `https://sms-scam-detector-ie.azurewebsites.net` (last with `--rate-limit`), and checks the log stream for message text. If anything fails, read the error output together. The app name is `sms-scam-detector-ie`, because `sms-scam-detector` was taken.
+Plan **Stage 10** (usability testing): the developer decides who takes part, the tasks, what's recorded and whether consent or ethics approval is needed, then Claude drafts the test materials. Test messages must be made up, never participants' real texts (025). Fixes from testing come back as code changes. The live site is `https://sms-scam-detector-ie.azurewebsites.net`; it sleeps after about 20 minutes idle.
 
 ## 9. Open questions and pending decisions
 
@@ -122,6 +124,7 @@ Newest first. One entry per session: what was done, what was decided, what's nex
 
 | Date | Summary |
 | --- | --- |
+| 13 Nov 2026 | Stage 9 done: deployed to Azure App Service at `sms-scam-detector-ie.azurewebsites.net` (`sms-scam-detector` was taken). Azure for Students only allowed five regions and France Central had no free quota, so it runs on free F1 in Belgium Central (decision 037). Live smoke test passed, including the rate limit, and the log stream showed no message text. Next: plan Stage 10. |
 | 7 Nov 2026 | Stage 8 done: web UI built from `docs/ui-design.md` (decision 036, with clarifications where the spec didn't fit the API). Screenshots of 10 states at 1280px and 390px matched the spec with no sideways scrolling; developer's hand checks all good. Link-only parcel scams came out Unsure – added to Stage 11. Next: plan Stage 9. |
 | 6 Nov 2026 | Stage 7 done: `POST /api/check` built with an app factory, 1,000-character limit, 20 checks per hour per IP, one error shape, and 503 if the model fails to load (decision 035). Checked over HTTP that the server log never contains message text. `ProxyFix` noted for Stage 9. Next: plan Stage 8. |
 | 6 Nov 2026 | Stage 6 done: check service built. `status` defined as `rated`, `low_confidence` or `no_recognised_terms`; Unsure threshold placeholder 0.7; Unsure never shows "No common scam signs found" (decision 034). Stage 11's carried-over list added to `plan.md`. Next: plan Stage 7. |
