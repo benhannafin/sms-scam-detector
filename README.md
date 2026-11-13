@@ -31,7 +31,15 @@ Then open http://127.0.0.1:5000 in a browser. (Locally this uses Flask's develop
 
 ## Deploy to Azure
 
-The app runs on Azure App Service, free F1 plan, Linux, North Europe (decision 037). Live address: https://sms-scam-detector-ie.azurewebsites.net
+The app runs on Azure App Service, free F1 plan, Linux, Belgium Central (decision 037). Live address: https://sms-scam-detector-ie.azurewebsites.net
+
+**Azure for Students only allows certain regions.** Check yours with:
+
+```powershell
+az policy assignment list --query "[].{name:displayName, regions:parameters.listOfAllowedLocations.value}" -o json
+```
+
+On this account they were `germanywestcentral`, `spaincentral`, `francecentral`, `belgiumcentral` and `denmarkeast`. The free F1 plan also needs quota in the region: France Central had none, Belgium Central worked. If a region says "Current Limit (F1 VMs): 0", try another allowed one.
 
 ### First time
 
@@ -48,8 +56,9 @@ $rg   = "rg-sms-scam-detector"
 $plan = "plan-sms-scam-detector"
 
 # 4. Create the resource group, the free Linux plan and the web app
+#    (the group only holds information, so its region doesn't matter; the plan's must be allowed)
 az group create --name $rg --location northeurope
-az appservice plan create --name $plan --resource-group $rg --sku F1 --is-linux --location northeurope
+az appservice plan create --name $plan --resource-group $rg --sku F1 --is-linux --location belgiumcentral
 az webapp create --name $app --resource-group $rg --plan $plan --runtime "PYTHON:3.13" --startup-file gunicorn
 
 # 5. HTTPS only, and install requirements.txt on Azure during each deploy

@@ -309,7 +309,7 @@ The local Python is 3.13.5, and the Azure CLI wasn't installed. `sms-scam-detect
 - **Server:** Gunicorn, with 1 process, 4 threads and no access log.
 - **Client address:** `ProxyFix(x_for=1)`, and the rate limit's key removes the port.
 - **Requirements:** split into `requirements.txt` (the website only) and `requirements-dev.txt` (adds pandas and pytest).
-- **Hosting:** a free Linux F1 plan in North Europe (Dublin), Python 3.13, HTTPS only, at `sms-scam-detector-ie.azurewebsites.net`.
+- **Hosting:** a free Linux F1 plan in North Europe (Dublin), later changed to Belgium Central (see below), Python 3.13, HTTPS only, at `sms-scam-detector-ie.azurewebsites.net`.
 - **Deploying:** the developer runs Azure CLI commands from the README, deploying a `git archive` zip of committed files only.
 - **Smoke test:** a script checks the live site, including that the 21st check is refused.
 **Alternatives considered:** Waitress (also runs on Windows, but is less standard on Azure); several Gunicorn processes (would multiply the limit unless it moved to shared storage such as Redis, a new paid service); the VS Code Azure extension (clicks, harder to repeat); GitHub Actions (deploys on every push, but needs secrets and more setup); Claude creating the cloud resources (needs the developer's login and creates public resources); one requirements file (installs about 100 MB the site never uses).
@@ -318,3 +318,5 @@ The local Python is 3.13.5, and the Azure CLI wasn't installed. `sms-scam-detect
 - **Throughput:** one process limits how many checks can run at once, which is fine for a prototype.
 - **Unconfirmed address format:** the `:port` format is expected but must be confirmed on the live site, which the smoke test's `--rate-limit` check does.
 - **Free-tier sleeping:** the site sleeps after about 20 minutes idle, and the first visit afterwards is slow (020).
+
+**Change during deployment (13 Nov 2026):** North Europe was refused. Azure for Students limits this subscription to five regions: Germany West Central, Spain Central, France Central, Belgium Central and Denmark East. UK South was refused too. France Central was allowed, but had a quota of 0 free F1 servers. The F1 plan was created in **Belgium Central** (Brussels), similar in distance to Paris, so the free tier (020) still holds. The resource group stays in North Europe, because a group only holds information and its region doesn't affect the app. Rejected: the Basic B1 plan (about $13 a month from the student credit), and asking Microsoft to raise the France Central quota (an unknown wait). The README lists the allowed-regions check for anyone using a student account.

@@ -54,7 +54,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 6 | Check service | Done |
 | 7 | REST API | Done |
 | 8 | Web UI | Done |
-| 9 | Deployment (Azure App Service) | In progress |
+| 9 | Deployment (Azure App Service) | Done |
 | 10 | Usability testing and fixes | Not started |
 | 11 | Tuning and evaluation | Not started |
 | 12 | Failure handling and hardening | Not started |
@@ -381,7 +381,7 @@ sms-scam-detector/
 - 226 tests pass.
 
 ## Stage 9 – Deployment
-**Status:** In progress
+**Status:** Done
 **Goal:** the app running at `https://sms-scam-detector-ie.azurewebsites.net` on Azure App Service (free tier), with message text kept out of logs and the rate limit working per user (see decision 037).
 **Carried over:** add Werkzeug's `ProxyFix`, so the rate limit sees each user's real IP address instead of Azure's front end (decisions 013, 035).
 **In scope:**
@@ -403,13 +403,13 @@ sms-scam-detector/
 - The smoke test's checks pass against a local server.
 **Done when:**
 - [x] Code, config and tests done; `pytest` passes
-- [ ] Developer has deployed with the README commands
-- [ ] Smoke test passes against the live site, including `--rate-limit`
-- [ ] The live log stream shows no message text after a check
-- [ ] Plain-English explanation given and `docs/learning_log.md` summary written
-- [ ] Committed
+- [x] Developer has deployed with the README commands (F1 in Belgium Central; see decision 037)
+- [x] Smoke test passes against the live site, including `--rate-limit` (13 Nov: all checks passed, so Azure's `:port` addresses are handled)
+- [x] The live log stream shows no message text after a check (13 Nov, checked by the developer)
+- [x] Plain-English explanation given and `docs/learning_log.md` summary written
+- [x] Committed
 **Open questions:** none.
-**Notes after finishing:**
+**Notes after finishing:** Live at `https://sms-scam-detector-ie.azurewebsites.net` on the free F1 plan in Belgium Central. North Europe and UK South were refused because Azure for Students only allows five regions, and France Central had no free F1 quota (decision 037). 239 tests pass locally. On 13 Nov the live smoke test passed every check, including `--rate-limit` (the 21st check was refused), and the live log stream showed no message text.
 
 ## Stage 10 – Usability testing and fixes
 **Goal:** people unfamiliar with the app try it; record where they hesitate or misread results; fix what they find.
