@@ -1,12 +1,12 @@
 # UI design spec
 
-The approved design for the web UI (Stage 8). Desktop-first, then adapts to phone widths. Style: **neumorphism (soft UI)** with Apple-style interaction principles. Build the Flask templates and CSS to match this spec.
+The approved design for the web UI (Stage 8; restyled in Stage 10, see decision 039). Desktop-first, then adapts to phone widths. Style: **intense neumorphism (soft UI) with a hardware synth feel**, inspired by portable synthesizers such as Teenage Engineering's OP-1 (inspiration only – no logos, names or product shapes are copied). Apple-style interaction principles. Build the Flask templates and CSS to match this spec.
 
 ---
 
 ## 1. Design principles
 
-1. **One surface material.** The page background and every card, button and box share the same base colour. Shapes come only from a light shadow (top-left) and a dark shadow (bottom-right).
+1. **One surface material, like a device body.** The page background, cards and boxes share one cool grey. Shapes come from a light shadow (top-left) and a dark shadow (bottom-right), deep enough to read as physical. Keys are the exception: they have a lit face (a soft gradient) in light grey, coral (main action) or charcoal (navigation), like synth keys.
 2. **One physical rule, used everywhere:**
    - **Raised** = something you can press (buttons, links styled as buttons, example chips).
    - **Sunken** (inset shadow) = something you type into, or information to read (text box, message panel, reasons, notices, progress tracks).
@@ -15,7 +15,8 @@ The approved design for the web UI (Stage 8). Desktop-first, then adapts to phon
 3. **Instant response.** Buttons react on press (pointer-down), not on release: raised → sunken + scale 0.98, 120 ms.
 4. **Four kinds of feedback:** status ("Checking your message…"), completion (the result), warning (the verdict), error (inline under the text box – never a pop-up, and the user's text is kept).
 5. **Never say "safe".** Every result shows the "can be wrong" reminder.
-6. **Accessible by default.** Text contrast ≥ 4.5:1, visible focus ring, touch targets ≥ 44 px, and it respects the user's reduced-motion, reduced-transparency and high-contrast settings.
+6. **Accessible by default.** Text contrast ≥ 4.5:1, visible focus ring, touch targets ≥ 44 px, and it respects the user's reduced-motion and high-contrast settings. (The header is no longer translucent, so reduced transparency needs no special rule.)
+7. **Hardware feel without fake hardware.** The synth look comes from keys, deep panels, the LED meter and mono panel labels. No decorative knobs, screws or grilles: anything raised must be pressable (rule 2).
 
 ## 2. Design tokens
 
@@ -24,21 +25,28 @@ Put these in one CSS file (e.g. `app/web/static/css/styles.css`) as custom prope
 ```css
 :root {
   /* Surface */
-  --base: #e6e2dd;
-  --shadow-dark: #c4c0bc;
+  --base: #e3e5e8;                /* cool aluminium grey */
+  --shadow-dark: #b3b8bf;
   --shadow-light: #ffffff;
-  --track: #d3cec8;               /* progress-bar track */
+  --track: #d0d4d9;               /* meter and progress-bar tracks */
+
+  /* Keys */
+  --key-face: linear-gradient(145deg, #f6f7f9, #dcdfe3);   /* light keys (examples) */
+  --key-dark: #2e3238;            /* navigation keys and logo */
+  --on-key-dark: #ffffff;
 
   /* Text */
-  --ink: #2b2622;                 /* headings, body */
-  --ink-2: #3d3732;               /* secondary body */
-  --ink-3: #57514b;               /* muted labels */
-  --link: #a8432c;
+  --ink: #1f2328;                 /* headings, body */
+  --ink-2: #353a40;               /* secondary body */
+  --ink-3: #4f555c;               /* muted labels */
+  --link: #a3402a;
   --link-hover: #7d2f1e;
 
   /* Accent */
   --accent: #e17055;
+  --accent-face: linear-gradient(145deg, #ea8268, #d9634a);  /* main action keys */
   --on-accent: #2a140e;           /* text on accent: near-black (white fails contrast) */
+  --focus: #a3402a;               /* focus ring: the accent is under 3:1 on the base */
 
   /* Results */
   --scam-ink: #9f1d14;  --scam-fill: #c0392b;  --scam-mark: #f8cdc6;  --scam-mark-ink: #7a1a11;
@@ -47,24 +55,26 @@ Put these in one CSS file (e.g. `app/web/static/css/styles.css`) as custom prope
   --unsure-ink: #55468a;--unsure-fill: #7a6bb0;--unsure-mark: #e2dcf3;--unsure-mark-ink: #3d3266;
   --error: #9f1d14;
 
-  /* Shadows */
-  --raised-lg: 16px 16px 34px var(--shadow-dark), -16px -16px 34px var(--shadow-light);  /* main cards */
-  --raised-md: 8px 8px 18px var(--shadow-dark), -8px -8px 18px var(--shadow-light);      /* primary button */
-  --raised-sm: 5px 5px 12px var(--shadow-dark), -5px -5px 12px var(--shadow-light);      /* chips, nav links */
-  --inset-md: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light); /* text box, pressed */
-  --inset-sm: inset 4px 4px 9px var(--shadow-dark), inset -4px -4px 9px var(--shadow-light);   /* reasons, tracks */
+  /* Shadows – deep, so keys read as physical */
+  --raised-lg: 22px 22px 44px var(--shadow-dark), -22px -22px 44px var(--shadow-light);  /* main cards */
+  --raised-md: 12px 12px 24px var(--shadow-dark), -12px -12px 24px var(--shadow-light);  /* main action keys */
+  --raised-sm: 7px 7px 14px var(--shadow-dark), -7px -7px 14px var(--shadow-light);      /* example and nav keys */
+  --inset-md: inset 9px 9px 18px var(--shadow-dark), inset -9px -9px 18px var(--shadow-light); /* text box, message, pressed */
+  --inset-sm: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light); /* reasons, notices, tracks */
 
   /* Shape */
-  --radius-card: 2rem;
+  --radius-card: 1.75rem;
   --radius-box: 1.25rem;
+  --radius-key: 0.875rem;         /* keys are rounded squares, not pills */
   --radius-pill: 999px;
 
   /* Type */
   --font: ui-rounded, Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 ```
 
-- Load **Nunito** (weights 400, 600, 700, 800) from Google Fonts as the fallback for `ui-rounded`.
+- Load **Nunito** (weights 400, 600, 700, 800) from Google Fonts as the fallback for `ui-rounded`, and **JetBrains Mono** (weights 500, 700, 800) for `--mono`.
 - Sizes and spacing in **rem**, so the layout scales with the browser's text-size setting.
 
 ## 3. Typography
@@ -77,24 +87,27 @@ Put these in one CSS file (e.g. `app/web/static/css/styles.css`) as custom prope
 | Lead paragraph | 1.1875rem | 400 | 1.6 | 0 |
 | Body | 1rem | 400 | 1.5 | 0 |
 | Small / labels | 0.875rem | 600 | 1.5 | 0 (uppercase labels +0.06em) |
+| Panel labels (`--mono`) | 0.75–0.9375rem | 700 | 1.5 | uppercase, +0.08em |
+| Step numbers (`--mono`) | 1.5rem | 700 | 1.2 | 0, in `--link` |
 
-Tighter letter-spacing on large text, none on body text.
+Tighter letter-spacing on large text, none on body text. **Mono is for the "printed panel" text only:** field and section labels, the counter and helper line, the confidence label, "RESULT", step numbers and key labels. Messages, the verdict, summaries and advice stay in `--font` for easy reading.
 
 ## 4. Components
 
 | Component | Style |
 | --- | --- |
-| **Header** | Sticky, translucent: `background: rgba(230,226,221,0.72); backdrop-filter: blur(20px) saturate(180%)`. No divider line. Logo (shield icon in a raised rounded square, coral stroke) + "SMS Scam Detector" – links home. |
-| **Nav link** | Pill, `--raised-sm`, 0.9375rem/600, `--ink-2`. |
-| **Card** | `--base` background, `--radius-card`, `--raised-lg`, 2–2.25rem padding. |
+| **Header** | **Not fixed: scrolls away with the page.** Same background as the page, no blur, no divider line. Logo (shield icon, coral stroke, on a charcoal `--key-dark` key, `--radius-key`) + "SMS Scam Detector" – links home. |
+| **Nav key** | Charcoal key: `--key-dark` fill, `--on-key-dark` text, `--radius-key`, `--raised-sm`, `--mono` 0.8125rem/700 uppercase, min height 2.75rem. |
+| **Card (device body)** | `--base` background, `--radius-card`, `--raised-lg` plus a 1px top highlight (`inset 0 1px 0 rgba(255,255,255,0.9)`), 1px border `rgba(255,255,255,0.7)`, 2–2.25rem padding. |
 | **Text box** | Sunken (`--inset-md`), `--radius-box`, no fill change, 1px border `rgba(87,81,75,0.18)`, 1.0625rem text, resizable vertically. Real `<label>`. |
-| **Primary button** | Pill, `--accent` fill, `--on-accent` text, 1.125rem/700, height 3.75rem, `--raised-md`, 1px border `rgba(255,255,255,0.35)`. |
-| **Secondary / chip button** | Pill, `--base` fill, `--raised-sm`, 1px border `rgba(255,255,255,0.7)`, min height 2.75rem, 0.875rem/600. |
+| **Main action key** | Rounded square (`--radius-key`), `--accent-face` fill, `--on-accent` text, `--mono` 1rem/800 uppercase, height 4.25rem, `--raised-md` plus a 1px top highlight, 1px border `rgba(255,255,255,0.35)`. |
+| **Example key** | Rounded square (`--radius-key`), `--key-face` fill, `--raised-sm` plus a 1px top highlight, 1px border `rgba(255,255,255,0.7)`, min 7rem × 3.5rem, `--mono` 0.75rem/700 uppercase. |
 | **Pressed state** | Any raised control on `:active` → `box-shadow: var(--inset-md); transform: scale(0.98)`; transition 120 ms ease-out. |
 | **Info panel / notice** | Sunken (`--inset-sm` or `--inset-md`), `--radius-box`, icon + text. |
-| **Confidence meter** | Sunken track (height 1.125rem, 3px padding) with a solid fill in the result's `-fill` colour; percentage label above. `role="img"` with an `aria-label`. |
+| **Confidence meter** | LED segment bar: sunken track (height 1.375rem, 4px padding, 0.5rem radius) with a fill of segments in the result's `-fill` colour (9px lit, 3px gap); percentage label above in `--mono`. `role="img"` with an `aria-label`. |
+| **Step tiles** | Sunken; step number large in `--mono` and `--link`, step name as a mono label, description in `--font`. |
 | **Highlight** | `<mark>` with the result's `-mark` background and `-mark-ink` text, 600 weight, small rounded padding. |
-| **Focus** | `:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }` |
+| **Focus** | `:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }` |
 | **Icons** | Inline stroke SVGs (24px grid, stroke 2–2.2), `aria-hidden="true"` when decorative. No emoji. |
 
 ## 5. Screens and states
@@ -149,7 +162,6 @@ Below: **How it works** – three sunken tiles (STEP 1 Paste / STEP 2 Check / ST
 
 ```css
 @media (prefers-reduced-motion: reduce) { /* no press scale, no movement */ }
-@media (prefers-reduced-transparency: reduce) { header { background: var(--base); backdrop-filter: none; } }
 @media (prefers-contrast: more) { /* 2px solid #475569 outline on every raised and sunken surface */ }
 ```
 

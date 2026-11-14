@@ -45,6 +45,8 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 035 | REST API: limits, errors and startup | Accepted |
 | 036 | UI design: desktop-first neumorphic soft UI | Accepted |
 | 037 | Deployment: Gunicorn, real client addresses, Azure CLI | Accepted |
+| 038 | Self-review now, user testing last (new Stage 13) | Accepted |
+| 039 | Synth restyle: intense neumorphism, cool grey, keys | Accepted |
 
 ---
 
@@ -320,3 +322,30 @@ The local Python is 3.13.5, and the Azure CLI wasn't installed. `sms-scam-detect
 - **Free-tier sleeping:** the site sleeps after about 20 minutes idle, and the first visit afterwards is slow (020).
 
 **Change during deployment (13 Nov 2026):** North Europe was refused. Azure for Students limits this subscription to five regions: Germany West Central, Spain Central, France Central, Belgium Central and Denmark East. UK South was refused too. France Central was allowed, but had a quota of 0 free F1 servers. The F1 plan was created in **Belgium Central** (Brussels), similar in distance to Paris, so the free tier (020) still holds. The resource group stays in North Europe, because a group only holds information and its region doesn't affect the app. Rejected: the Basic B1 plan (about $13 a month from the student credit), and asking Microsoft to raise the France Central quota (an unknown wait). The README lists the allowed-regions check for anyone using a student account.
+
+## 038 – Self-review now, user testing last (new Stage 13)
+**Status:** Accepted (13 Nov 2026)
+**Context:** Stage 10 was user testing, followed by tuning (11) and hardening (12). Stage 11 will likely change what people see, such as how often Unsure appears, so testing with users before it would test a version that's about to change.
+**Decision:** Stage 10 becomes a self-review: the developer walks through the live app with a checklist and made-up messages, and we fix what's found. User testing with about 5 people moves to a new Stage 13, after hardening, so it tests the finished app. The user-testing design discussed on 13 Nov is carried over into Stage 13's notes.
+**Alternatives considered:** User testing now, as planned (would test a version Stage 11 changes); defer Stage 10 with no self-review (misses easy fixes before tuning); self-review only (the developer knows the design, so can't find out whether others misread a result, which is the main risk).
+**Consequences:** Problems found by users arrive late, so a few days must be left after the sessions for fixes. The developer has time to check with the lecturer about consent and ethics. Stage 10 can't show whether "Looks legitimate" on a scam is misread; only Stage 13 can.
+
+## 039 – Synth restyle: intense neumorphism, cool grey, keys
+**Status:** Accepted (14 Nov 2026)
+**Context:** After seeing the live app, the developer wanted more intense neumorphism, a header that isn't fixed, and a look inspired by hardware synthesizers such as Teenage Engineering's OP-1. Four choices were put to the developer, then a throwaway prototype was screenshotted and approved ("looks better").
+**Decision:** This updates the visual parts of 036; its interaction and accessibility rules still apply.
+- **Panels:** light and sunken, with deeper shadows (about 40% larger), not a dark display screen.
+- **Raised means pressable:** only real buttons and links are raised, with no decorative knobs, screws or grilles.
+- **Colour:** a cool aluminium grey body (`#e3e5e8`) with coloured keys: coral for the main action, charcoal for navigation, light grey for the examples.
+- **Type:** JetBrains Mono for panel labels and numbers, with Nunito kept for reading text.
+- **Header:** scrolls away instead of staying fixed.
+- **Meter:** keys become rounded squares, and the confidence meter becomes an LED segment bar.
+- **Inspiration only:** no logos, names or product shapes are copied.
+
+All text colours were checked on the new grey and pass 4.5:1. The prototype's first coral step numbers were only 2.5:1, so they use `--link` (5.0:1). The focus ring is `#a3402a` (5.0:1).
+**Alternatives considered:** A dark display screen for the text box and message (the strongest synth cue, but the developer preferred light panels); decorative hardware details, flat or raised (raised ones would break the "raised means pressable" rule from 036); keep the warm beige (less like the synth); mono everywhere (long advice text gets harder to read); keep the fixed translucent header (the developer didn't like it).
+**Consequences:**
+- **Fonts:** a second font file is loaded from Google Fonts.
+- **Coral key edge:** the coral key is 2.50:1 against the body, as before, so its dark label and shadow carry its visibility.
+- **Accessibility setting:** without a translucent header, the reduced-transparency rule is no longer needed.
+- **Superseded alternative:** the "cooler neumorphic version" listed as an alternative in 036 is close to this, but differs in its coloured keys and deeper shadows.

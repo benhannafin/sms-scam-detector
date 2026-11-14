@@ -55,9 +55,10 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 7 | REST API | Done |
 | 8 | Web UI | Done |
 | 9 | Deployment (Azure App Service) | Done |
-| 10 | Usability testing and fixes | Not started |
+| 10 | Self-review and fixes | In progress |
 | 11 | Tuning and evaluation | Not started |
 | 12 | Failure handling and hardening | Not started |
+| 13 | User testing and final fixes | Not started |
 
 ---
 
@@ -411,8 +412,39 @@ sms-scam-detector/
 **Open questions:** none.
 **Notes after finishing:** Live at `https://sms-scam-detector-ie.azurewebsites.net` on the free F1 plan in Belgium Central. North Europe and UK South were refused because Azure for Students only allows five regions, and France Central had no free F1 quota (decision 037). 239 tests pass locally. On 13 Nov the live smoke test passed every check, including `--rate-limit` (the 21st check was refused), and the live log stream showed no message text.
 
-## Stage 10 – Usability testing and fixes
-**Goal:** people unfamiliar with the app try it; record where they hesitate or misread results; fix what they find.
+## Stage 10 – Self-review and fixes
+**Status:** In progress
+**Goal:** restyle the UI to the synth look the developer approved from a prototype (decision 039), then the developer walks through the live app with a checklist and made-up messages, on phone and laptop, and we fix what's found. User testing with other people moves to Stage 13, so it tests the finished app (decision 038).
+
+**Part A – synth restyle** (spec: `docs/ui-design.md`, updated 14 Nov):
+- **Tokens:** `styles.css` takes the new values exactly: cool grey `--base` `#e3e5e8`, deeper shadows, key faces (`--key-face`, `--accent-face`, `--key-dark`), `--radius-key`, `--focus` `#a3402a` and `--mono`.
+- **Header:** no longer fixed or translucent; it scrolls away with the page.
+- **Keys:** rounded squares with lit faces: coral for Check message and Check another message, charcoal for the nav keys and logo, light grey for the examples.
+- **Labels:** field and section labels, the helper line and counter, the confidence label, "RESULT", step numbers and key labels are in JetBrains Mono (loaded from Google Fonts with Nunito). Reading text stays in Nunito.
+- **Confidence meter:** an LED segment bar.
+- **Step tiles:** big mono step numbers in `--link`.
+- **Unchanged:** wording, layout, result colours, behaviour, JavaScript and the "only pressable things are raised" rule.
+
+**Part B – self-review:** a checklist for the developer, using the made-up messages, on phone and laptop. Fixes come back as a short follow-up plan.
+
+**Out of scope:** dark display screens, decorative hardware details (both declined, decision 039); changing wording or behaviour; user testing (Stage 13).
+**Files:** `app/web/static/css/styles.css`, `app/web/templates/base.html` (font link), `tests/test_web.py`, `docs/ui-design.md`, `docs/self-review.md` (the checklist).
+**Tests:**
+- Every token in the updated spec is in `styles.css` with its exact value (the existing test, now reading the new spec).
+- The header isn't `position: sticky` or `fixed`.
+- JetBrains Mono is loaded, and `--mono` isn't used for the message panel, verdict, summary or advice.
+- No `prefers-reduced-transparency` rule is left over, and the reduced-motion and high-contrast rules remain.
+- All existing tests still pass, so the wording and behaviour are unchanged.
+**Manual check:** screenshots of the main states at 1280px and 390px with no sideways scrolling, then the developer redeploys and looks at it live.
+**Done when:**
+- [x] Restyle matches the updated spec at 1280px and 390px, with no horizontal scrolling (14 Nov: 9 states screenshotted; every state exactly 390px wide)
+- [x] `pytest` passes (249)
+- [ ] Redeployed and checked live
+- [ ] Self-review done and its fixes made
+- [ ] Plain-English explanation given and `docs/learning_log.md` summary written
+- [ ] Committed
+**Open questions:** none.
+**Notes after finishing:**
 
 ## Stage 11 – Tuning and evaluation
 **Goal:** choose the Unsure threshold; test on Irish scam examples from public warnings; measure against targets (≥95% scam-vs-safe recall, ≤5% false alarms).
@@ -420,3 +452,15 @@ sms-scam-detector/
 
 ## Stage 12 – Failure handling and hardening
 **Goal:** the app behaves sensibly when the model fails or gives poor output; edge cases covered by tests.
+
+## Stage 13 – User testing and final fixes
+**Goal:** people unfamiliar with the app try the finished version; record where they hesitate or misread results; fix what they find (decision 038).
+**Carried over from the Stage 10 discussion (13 Nov 2026), to confirm when planning:**
+- **Participants:** about 5, including at least one older or less tech-confident person.
+- **Sessions:** about 15 minutes each, think-aloud, on the live site on the person's own phone.
+- **Tasks:** 6, each with a made-up message: scam, marketing spam, genuine, Unsure, the "Hi mum" scam (the riskiest case: "Looks legitimate" on a scam), and an empty box. After each, ask "What does this tell you?" and "What would you do now?"
+- **Recording:** a notes sheet per person with no names, audio or video, plus the System Usability Scale.
+- **Consent:** a short consent sheet; check with the lecturer whether ethics approval is needed.
+- **Severity:** critical and serious problems get fixed; minor ones are logged.
+- **Rate limit:** people on one network share 20 checks an hour, so space sessions out or use mobile data.
+- **Timing:** leave a few days after the sessions for fixes before the deadline.

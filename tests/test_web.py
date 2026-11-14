@@ -228,7 +228,6 @@ def test_every_spec_token_is_in_the_stylesheet_with_its_exact_value():
 @pytest.mark.parametrize("rule", [
     ":focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }",
     "@media (prefers-reduced-motion: reduce)",
-    "@media (prefers-reduced-transparency: reduce)",
     "@media (prefers-contrast: more)",
     "@media (max-width: 900px)",
     "@media (max-width: 600px)",
@@ -238,7 +237,36 @@ def test_stylesheet_has_the_required_rules(rule):
 
 
 def test_focus_ring_uses_the_darker_colour():
-    assert "--focus: #a8432c;" in CSS
+    assert "--focus: #a3402a;" in CSS
+
+
+def css_rules():
+    """(selectors, declarations) for each rule, ignoring the @media wrappers."""
+    return re.findall(r"([^{}]+)\{([^{}]*)\}", re.sub(r"/\*.*?\*/", "", CSS, flags=re.S))
+
+
+def test_header_scrolls_away():
+    for selectors, body in css_rules():
+        if ".site-header" in selectors:
+            assert "sticky" not in body and "fixed" not in body
+            assert "backdrop-filter" not in body
+
+
+def test_no_leftover_reduced_transparency_rule():
+    # The header is no longer translucent (decision 039).
+    assert "prefers-reduced-transparency" not in CSS
+
+
+def test_mono_font_is_loaded(page):
+    assert "family=JetBrains+Mono" in page
+
+
+@pytest.mark.parametrize("reading_text", [".message-panel", ".verdict", ".summary", ".what-to-do", ".lead", ".headline", "textarea", "mark"])
+def test_mono_is_only_for_panel_labels(reading_text):
+    for selectors, body in css_rules():
+        names = [name.strip() for name in selectors.split(",")]
+        if "var(--mono)" in body:
+            assert reading_text not in names
 
 
 @pytest.mark.parametrize("forbidden", ["innerHTML", "outerHTML", "insertAdjacentHTML", "localStorage", "sessionStorage", "document.cookie", "console."])

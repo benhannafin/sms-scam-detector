@@ -1,22 +1,29 @@
-/* SMS Scam Detector – tokens and rules from docs/ui-design.md (decision 036). */
+/* SMS Scam Detector – tokens and rules from docs/ui-design.md (decisions 036, 039). */
 
 :root {
   /* Surface */
-  --base: #e6e2dd;
-  --shadow-dark: #c4c0bc;
+  --base: #e3e5e8;                /* cool aluminium grey */
+  --shadow-dark: #b3b8bf;
   --shadow-light: #ffffff;
-  --track: #d3cec8;               /* progress-bar track */
+  --track: #d0d4d9;               /* meter and progress-bar tracks */
+
+  /* Keys */
+  --key-face: linear-gradient(145deg, #f6f7f9, #dcdfe3);   /* light keys (examples) */
+  --key-dark: #2e3238;            /* navigation keys and logo */
+  --on-key-dark: #ffffff;
 
   /* Text */
-  --ink: #2b2622;                 /* headings, body */
-  --ink-2: #3d3732;               /* secondary body */
-  --ink-3: #57514b;               /* muted labels */
-  --link: #a8432c;
+  --ink: #1f2328;                 /* headings, body */
+  --ink-2: #353a40;               /* secondary body */
+  --ink-3: #4f555c;               /* muted labels */
+  --link: #a3402a;
   --link-hover: #7d2f1e;
 
   /* Accent */
   --accent: #e17055;
+  --accent-face: linear-gradient(145deg, #ea8268, #d9634a);  /* main action keys */
   --on-accent: #2a140e;           /* text on accent: near-black (white fails contrast) */
+  --focus: #a3402a;               /* focus ring: the accent is under 3:1 on the base */
 
   /* Results */
   --scam-ink: #9f1d14;  --scam-fill: #c0392b;  --scam-mark: #f8cdc6;  --scam-mark-ink: #7a1a11;
@@ -25,23 +32,25 @@
   --unsure-ink: #55468a;--unsure-fill: #7a6bb0;--unsure-mark: #e2dcf3;--unsure-mark-ink: #3d3266;
   --error: #9f1d14;
 
-  /* Shadows */
-  --raised-lg: 16px 16px 34px var(--shadow-dark), -16px -16px 34px var(--shadow-light);  /* main cards */
-  --raised-md: 8px 8px 18px var(--shadow-dark), -8px -8px 18px var(--shadow-light);      /* primary button */
-  --raised-sm: 5px 5px 12px var(--shadow-dark), -5px -5px 12px var(--shadow-light);      /* chips, nav links */
-  --inset-md: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light); /* text box, pressed */
-  --inset-sm: inset 4px 4px 9px var(--shadow-dark), inset -4px -4px 9px var(--shadow-light);   /* reasons, tracks */
+  /* Shadows – deep, so keys read as physical */
+  --raised-lg: 22px 22px 44px var(--shadow-dark), -22px -22px 44px var(--shadow-light);  /* main cards */
+  --raised-md: 12px 12px 24px var(--shadow-dark), -12px -12px 24px var(--shadow-light);  /* main action keys */
+  --raised-sm: 7px 7px 14px var(--shadow-dark), -7px -7px 14px var(--shadow-light);      /* example and nav keys */
+  --inset-md: inset 9px 9px 18px var(--shadow-dark), inset -9px -9px 18px var(--shadow-light); /* text box, message, pressed */
+  --inset-sm: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light); /* reasons, notices, tracks */
 
   /* Shape */
-  --radius-card: 2rem;
+  --radius-card: 1.75rem;
   --radius-box: 1.25rem;
+  --radius-key: 0.875rem;         /* keys are rounded squares, not pills */
   --radius-pill: 999px;
 
   /* Type */
   --font: ui-rounded, Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
-  /* The accent is 2.45:1 on the base, under the 3:1 outlines need (decision 036). */
-  --focus: #a8432c;
+  /* A key's lit top edge. */
+  --key-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 /* ---------- Base ---------- */
@@ -78,16 +87,25 @@ a:hover { color: var(--link-hover); }
   stroke-linejoin: round;
 }
 
-/* ---------- Header ---------- */
-
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: rgba(230, 226, 221, 0.72);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
+/* "Printed panel" text in mono; messages, verdict, summary and advice stay in --font. */
+.eyebrow,
+.field-label,
+.helper-row,
+.examples-label,
+.section-heading,
+.small,
+.confidence-label,
+.status-bar,
+.step h3,
+.nav-link,
+.chip,
+.button-primary {
+  font-family: var(--mono);
 }
+
+/* ---------- Header: scrolls away with the page ---------- */
+
+.site-header { position: static; }
 
 .header-inner {
   display: flex;
@@ -118,8 +136,8 @@ a:hover { color: var(--link-hover); }
   place-items: center;
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 0.875rem;
-  background: var(--base);
+  border-radius: var(--radius-key);
+  background: var(--key-dark);
   box-shadow: var(--raised-sm);
   color: var(--accent);
 }
@@ -132,16 +150,20 @@ a:hover { color: var(--link-hover); }
   align-items: center;
   min-height: 2.75rem;
   padding: 0.5rem 1.125rem;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: var(--radius-pill);
-  background: var(--base);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-key);
+  background: var(--key-dark);
   box-shadow: var(--raised-sm);
-  color: var(--ink-2);
-  font: 600 0.9375rem/1.2 var(--font);
+  color: var(--on-key-dark);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
   text-decoration: none;
+  text-transform: uppercase;
   cursor: pointer;
 }
-.nav-link:hover { color: var(--ink); }
+.nav-link:hover { color: var(--on-key-dark); }
 
 /* ---------- Layout ---------- */
 
@@ -175,30 +197,32 @@ a:hover { color: var(--link-hover); }
 
 .section-heading {
   margin: 0 0 1rem;
-  font-size: 1.375rem;
-  font-weight: 800;
+  font-size: 0.9375rem;
+  font-weight: 700;
   line-height: 1.2;
-  letter-spacing: -0.015em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .eyebrow {
   margin: 0;
   color: var(--ink-3);
   font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.small { color: var(--ink-3); font-size: 0.875rem; font-weight: 600; }
+.small { color: var(--ink-3); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.02em; }
 
 /* ---------- Surfaces ---------- */
 
 .card {
   padding: 2.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: var(--radius-card);
   background: var(--base);
-  box-shadow: var(--raised-lg);
+  box-shadow: var(--raised-lg), var(--key-highlight);
 }
 
 .notice {
@@ -220,8 +244,10 @@ a:hover { color: var(--link-hover); }
 .field-label {
   display: block;
   margin-bottom: 0.75rem;
-  font-size: 1.0625rem;
+  font-size: 0.875rem;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 textarea {
@@ -261,35 +287,45 @@ textarea[aria-invalid="true"] {
   color: var(--ink-3);
   font-size: 0.875rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
-/* ---------- Buttons ---------- */
+/* ---------- Keys ---------- */
 
 .button-primary {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 3.75rem;
+  height: 4.25rem;
   padding: 0 2rem;
   border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  box-shadow: var(--raised-md);
+  border-radius: var(--radius-key);
+  background: var(--accent-face);
+  box-shadow: var(--raised-md), inset 0 1px 0 rgba(255, 255, 255, 0.45);
   color: var(--on-accent);
-  font: 700 1.125rem/1 var(--font);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
   cursor: pointer;
 }
 
 .chip {
-  min-height: 2.75rem;
-  padding: 0.5rem 1.125rem;
+  min-width: 7rem;
+  min-height: 3.5rem;
+  padding: 0.5rem 1rem;
   border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: var(--radius-pill);
-  background: var(--base);
-  box-shadow: var(--raised-sm);
+  border-radius: var(--radius-key);
+  background: var(--key-face);
+  box-shadow: var(--raised-sm), var(--key-highlight);
   color: var(--ink-2);
-  font: 600 0.875rem/1.2 var(--font);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
   cursor: pointer;
 }
 
@@ -310,7 +346,14 @@ textarea[aria-invalid="true"] {
 }
 
 .examples { margin-top: 1.75rem; }
-.examples-label { margin: 0 0 0.75rem; color: var(--ink-3); font-size: 0.875rem; font-weight: 600; }
+.examples-label {
+  margin: 0 0 0.75rem;
+  color: var(--ink-3);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .chips { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 
 /* ---------- Checking status ---------- */
@@ -320,11 +363,12 @@ textarea[aria-invalid="true"] {
   flex-direction: column;
   justify-content: center;
   gap: 0.5rem;
-  height: 3.75rem;
+  height: 4.25rem;
   padding: 0 1.75rem;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-key);
   box-shadow: var(--inset-md);
   color: var(--ink-2);
+  font-size: 0.9375rem;
   font-weight: 700;
 }
 
@@ -353,7 +397,7 @@ textarea[aria-invalid="true"] {
 
 /* ---------- How it works ---------- */
 
-.how { margin-top: 4.5rem; scroll-margin-top: 6rem; }
+.how { margin-top: 4.5rem; scroll-margin-top: 2rem; }
 
 .steps {
   display: grid;
@@ -369,7 +413,16 @@ textarea[aria-invalid="true"] {
   border-radius: var(--radius-box);
   box-shadow: var(--inset-sm);
 }
-.step h3 { margin: 0.25rem 0 0.5rem; font-size: 1.25rem; font-weight: 700; line-height: 1.2; }
+/* Coral text is only 2.5:1 on the grey, so step numbers use --link (5.0:1). */
+.step .eyebrow { color: var(--link); font-size: 1.5rem; letter-spacing: 0; line-height: 1.2; }
+.step h3 {
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
 .step p:last-child { margin: 0; color: var(--ink-2); }
 
 /* ---------- Result ---------- */
@@ -415,17 +468,23 @@ textarea[aria-invalid="true"] {
   color: var(--ink-3);
   font-size: 0.875rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
 }
 .confidence-label strong { color: var(--ink); font-weight: 800; }
 
+/* Confidence as an LED segment bar: 9px lit, 3px gap. */
 .meter {
-  height: 1.125rem;
-  padding: 3px;
-  border-radius: var(--radius-pill);
+  height: 1.375rem;
+  padding: 4px;
+  border-radius: 0.5rem;
   background: var(--track);
   box-shadow: var(--inset-sm);
 }
-.meter-fill { height: 100%; border-radius: var(--radius-pill); background: var(--r-fill); }
+.meter-fill {
+  height: 100%;
+  border-radius: 0.25rem;
+  background: repeating-linear-gradient(90deg, var(--r-fill) 0 9px, transparent 9px 12px);
+}
 
 .what-to-do { margin: 0; padding-left: 1.25rem; }
 .what-to-do li + li { margin-top: 0.5rem; }
@@ -508,10 +567,6 @@ mark {
   .logo:active .logo-mark { transform: none; }
   .view.is-entering { animation: view-fade 150ms ease-out both; }
   .progress-fill { width: 100%; animation: none; }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .site-header { background: var(--base); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 
 @media (prefers-contrast: more) {
