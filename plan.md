@@ -56,7 +56,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 8 | Web UI | Done |
 | 9 | Deployment (Azure App Service) | Done |
 | 10 | Self-review and fixes | Done |
-| 11 | Tuning and evaluation | Not started |
+| 11 | Tuning and evaluation | In progress |
 | 12 | Failure handling and hardening | Not started |
 | 13 | User testing and final fixes | Not started |
 
@@ -457,7 +457,55 @@ sms-scam-detector/
   - **What the developer would actually notice:** a request for money, verification by text rather than email, or a prize without paying.
 
 ## Stage 11 – Tuning and evaluation
-**Goal:** choose the Unsure threshold; test on Irish scam examples from public warnings; measure against targets (≥95% scam-vs-safe recall, ≤5% false alarms).
+**Status:** In progress (step 1)
+**Goal:** choose the Unsure threshold; test on Irish scam examples from public warnings; measure against targets (≥95% scam-vs-safe recall, ≤5% false alarms). Above all, deal with the Stage 10 findings, especially the "Hi mum" scam rated 91% Looks legitimate (see decision 040).
+
+It runs in three steps, with a check-in between each:
+
+**Step 1 – Measure (this plan):**
+- **Reference set:** `data/reference_set.csv` with about 50 messages: about 25 scams, 10 marketing and 15 genuine. Columns: `id`, `text`, `expected` (`ham` / `spam` / `smishing`), `origin` (`verbatim` / `modelled` / `made_up`), `source` (a public warning URL, or `made up`), `notes`.
+  - **Scams (option C, 14 Nov):** automatic collection found only 2 verbatim texts, because most warnings show examples as images or block automated reading. So the scams are a mix:
+    - **Verbatim:** real texts quoted in Irish public warnings, collected by Claude and by the developer by hand.
+    - **Modelled:** written by Claude, each based on a specific warning's description (source recorded), and written before any rules are designed.
+
+    Results are reported separately for verbatim and modelled scams.
+  - **Genuine:** made up, focusing on the hard cases: delivery updates, verification codes, family asking for money.
+  - **Marketing:** made up, or from public examples.
+- **Halves:** within each class and origin, messages are split evenly into `design` and `held_out` by the code, in a fixed order (sorted by a hash of the `id`), so the split is repeatable without a stored column. The set is frozen before step 2. Step 2 designs fixes using only the design half; the held-out half is only scored in step 3 (as in decision 023).
+- **Evaluation script:** `training/evaluate_reference.py` (run with `python -m training.evaluate_reference`). It runs every message through the real `CheckService` and reports, per message and in total:
+  - scams caught (any warning: Likely scam, Marketing spam or Unsure)
+  - **scams shown as a confident Looks legitimate** (the dangerous failure)
+  - genuine texts flagged (false alarms)
+  - how often Unsure appears
+  - the reasons given
+
+  It scores only the design half unless run with `--held-out`, which is reserved for step 3.
+- **Overlap check:** messages must not already be in the training data, after cleaning.
+
+**Step 2 – Decide (separate plan, after step 1's results):** from the design half's results, the developer chooses: the hand-written warning signs (option C) and exactly what they do; which words to leave out of the reasons (option B); the Unsure threshold (keep 0.7, tune it, or apply it only to Legitimate results); and what to do about calibration, mostly-unrecognised text, link-only parcel scams and short codes.
+
+**Step 3 – Fix and re-measure (separate plan):** build the chosen fixes with tests, then score both halves; the held-out half shows whether the fixes generalise.
+
+**Out of scope:** retraining on new data (option D, declined: decision 040); user testing (Stage 13).
+**Files (step 1):** `data/reference_set.csv`, `data/README.md` (sources and licence note), `training/evaluate_reference.py`, `tests/test_reference_set.py`.
+**Tests (step 1):**
+- The CSV loads, every `expected` label is valid, and every row has a source.
+- No duplicate messages; none appear in the training data after cleaning.
+- Each class is split evenly between halves, and the split is repeatable.
+- The summary counts are right on a made-up set run through the mock classifier.
+- The script won't score the held-out half without `--held-out`.
+**Done when (step 1):**
+- [ ] Reference set collected, reviewed by the developer and committed (47 rows drafted 14 Nov: 2 verbatim + 20 modelled scams, 10 marketing, 15 genuine; waiting for the developer's hand-copied verbatim scams and review)
+- [x] Evaluation script and tests done; `pytest` passes (268)
+- [ ] Design-half results recorded in these notes
+- [ ] Step 2 plan written
+
+**Done when (whole stage):**
+- [ ] Fixes chosen, built and tested; both halves scored and recorded
+- [ ] Plain-English explanation given and `docs/learning_log.md` summary written
+- [ ] Committed and redeployed
+**Open questions:** none for step 1.
+**Notes after finishing:**
 **Carried over:** the Stage 10 self-review findings above (unconvincing reasons; the model can't recognise requests for money; the "Hi mum" scam at 91% Looks legitimate is **critical**); text the model barely understands can still get a confident Looks legitimate. In Stage 10, a short non-English test sentence came out at 84% because a couple of its words are recognised, so the "no recognised terms" rule (decision 032) doesn't catch it. The app is English-only and other languages don't need supporting; the open question is whether mostly-unrecognised text should show Unsure instead of a confident result, or simply be recorded as a limitation; parcel-fee scams with only a link (no phone number) came out as Unsure at 62% and 69% in Stage 8, though that's how most current parcel scams look; the 94.9% test score (decision 031); check probability calibration; try applying the threshold only to Legitimate results (decision 034); test the "Hi mum" scam and messages with few recognised words (decisions 032, 033); review 5-digit short codes and numbers glued to words (decision 030).
 
 ## Stage 12 – Failure handling and hardening

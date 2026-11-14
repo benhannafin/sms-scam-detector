@@ -47,6 +47,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 037 | Deployment: Gunicorn, real client addresses, Azure CLI | Accepted |
 | 038 | Self-review now, user testing last (new Stage 13) | Accepted |
 | 039 | Synth restyle: intense neumorphism, cool grey, keys | Accepted |
+| 040 | Stage 11 approach: reference set first, then rules alongside the model | Accepted |
 
 ---
 
@@ -190,12 +191,14 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 ## 024 – Fixed reference set after every retrain
 **Status:** Proposed – confirm
 **Decision:** A small set of messages with known expected results is re-run after every retraining; any changed result is reviewed. A new model must beat the current model's test scores before publishing.
+**Note (14 Nov 2026):** Stage 11 builds this set (`data/reference_set.csv`, decision 040). Whether it's re-run after every retrain is still to confirm.
 
 ## 025 – Irish real-world check uses public warnings only
 **Status:** Accepted (20 Oct 2026)
 **Context:** No real personal data is used anywhere in the project.
 **Decision:** Irish test messages come from scam examples published by banks, An Post, Revenue, Gardaí and FraudSMART.
 **Alternatives considered:** Public + self-written synthetic genuine messages; skip the Irish check.
+**Change (14 Nov 2026):** Widened to the first alternative. Scams still come only from public warnings, but genuine messages are made up, because public warnings only show scams and the Stage 10 self-review needed hard genuine cases (delivery updates, verification codes, family asking for money). No real personal data is used. See 040.
 
 ## 026 – Primary safety feature: no false reassurance
 **Status:** Accepted (20 Oct 2026)
@@ -349,3 +352,22 @@ All text colours were checked on the new grey and pass 4.5:1. The prototype's fi
 - **Coral key edge:** the coral key is 2.50:1 against the body, as before, so its dark label and shadow carry its visibility.
 - **Accessibility setting:** without a translucent header, the reduced-transparency rule is no longer needed.
 - **Superseded alternative:** the "cooler neumorphic version" listed as an alternative in 036 is close to this, but differs in its coloured keys and deeper shadows.
+
+## 040 – Stage 11 approach: reference set first, then rules alongside the model
+**Status:** Accepted (14 Nov 2026)
+**Context:** The developer's Stage 10 self-review found the model's reasons often unconvincing ("delivery", "STOP", "your", "new"). In the training data, requests for money lean towards genuine and "send me" appears only in genuine texts, so the "Hi mum" scam gets 91% Looks legitimate, a critical failure (026). The 94.9% test score doesn't show this, because the dataset contains almost none of today's common scams.
+**Decision:** Stage 11 runs in three steps with a check-in between each: measure, decide, fix and re-measure.
+- **Reference set:** about 50 messages (about 25 scams from Irish public warnings, 10 marketing, 15 made-up genuine hard cases), split evenly into a design half and a held-out half with a fixed seed. Fixes are designed only on the design half; the held-out half is scored once, at the end (as in 023).
+- **Fixes in scope:** option C, hand-written warning signs such as "asks for money" or "asks you to verify details", probably in a small `app/signals` package. A sign shows as a reason and can turn a confident Looks legitimate into Unsure, but never makes a result Likely scam on its own. Also option B, leaving function words such as "your" out of the reasons shown. The details are decided in step 2, from the evidence.
+**Alternatives considered:**
+- **D, more training data and retraining:** would need hundreds of reliably labelled modern messages, and goes beyond the single dataset (001, 003).
+- **Rules replacing the model:** they only catch what someone thought to write.
+- **No changes, recorded as a limitation:** leaves a critical safety failure in place.
+- **Measuring on the same messages the rules were designed on:** would inflate the results.
+**Consequences:** The app becomes a hybrid, with machine learning for patterns and a few rules for dangerous cases the data missed; the report can present this openly. Adding `app/signals` is an architecture change, confirmed in step 2. Decision 025 is widened to allow made-up genuine messages, and decision 024's reference set gets built.
+
+**Change (14 Nov 2026): scam sources.** Automatic collection from Irish public warnings found only 2 verbatim scam texts. Most warnings show examples as images (for example, Bank of Ireland's pages), and five news sites blocked automated reading. The developer chose a mix:
+- **Verbatim:** texts collected by Claude, plus texts the developer copies by hand.
+- **Modelled:** scams written by Claude, each based on a specific warning's description, with the source recorded, and written before any rules.
+
+An `origin` column marks each message, and results are reported separately for each group. Rejected: verbatim only (too few, about 2 to 4); modelled only (our own wording, which may be more typical than real scams, or easier for rules we design). This widens 025 further: scams are no longer only verbatim public warnings.
