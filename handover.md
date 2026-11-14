@@ -2,7 +2,7 @@
 
 **Read this first.** This file lets any AI assistant (or person) pick up the project with no prior context. It's updated at the end of every working session. For full detail, it points to the other files in this repo.
 
-**Last updated:** 13 Nov 2026 · **Current stage:** 10 – Self-review and fixes (planning; UI changes first)
+**Last updated:** 14 Nov 2026 · **Current stage:** 11 – Tuning and evaluation (planning)
 
 ---
 
@@ -102,12 +102,19 @@ pytest
 | 7 | REST API | Done (`app/api`, `create_app`, 171 tests passing, pushed) |
 | 8 | Web UI | Done (`app/web`, 226 tests passing, checked at 1280px and 390px, pushed) |
 | 9 | Deployment | Done (live at `https://sms-scam-detector-ie.azurewebsites.net`, free F1 in Belgium Central, all live checks passed, pushed) |
-| 10 | Self-review and fixes | **Planning – developer wants UI changes first** |
-| 11–13 | Tuning → hardening → user testing (moved last, decision 038) | Not started |
+| 10 | Self-review and fixes | Done (synth restyle live, decision 039; self-review found no usability problems; model findings carried to Stage 11) |
+| 11 | Tuning and evaluation | **Planning** |
+| 12–13 | Hardening → user testing (moved last, decision 038) | Not started |
 
 ## 8. Next action
 
-**Stage 10** is now a self-review (decision 038); user testing moved to a new Stage 13 at the end, with its design kept in Stage 13's notes in `plan.md`. First, a synth-style restyle the developer approved from a prototype (decision 039, spec updated in `docs/ui-design.md`). Part A (restyle) is done, committed and live (developer checked it). Part B: the developer works through `docs/self-review.md` on phone and laptop, then brings back the problem log; Claude plans and makes the fixes for critical and serious problems. Note for screenshots: browsers block port 5060 (SIP), and headless Edge's `--dump-dom` stopped returning output, so use headless Chrome with its own `--user-data-dir` for measurements. The live site is `https://sms-scam-detector-ie.azurewebsites.net`; it sleeps after about 20 minutes idle.
+Plan **Stage 11** (tuning and evaluation). Its main job is now the model weaknesses found in the Stage 10 self-review (see Stage 10's notes in `plan.md`): the reasons are unconvincing, and the model can't recognise requests for money, so the "Hi mum" scam gets 91% Looks legitimate (**critical**). Options to put to the developer:
+- **A:** a reference set of modern scams from public warnings, plus genuine texts, to measure where it fails (suggested first).
+- **B:** leave function words like "your" out of the reasons shown.
+- **C:** hand-written warning signs (asks for money, asks to verify) that can block a confident Looks legitimate. This is an architecture change.
+- **D:** more training data, which goes beyond decisions 001 and 003.
+
+Also carried over: the Unsure threshold, calibration, mostly-unrecognised text, link-only parcel scams, short codes and the 94.9% score. User testing is Stage 13. Note for screenshots: browsers block port 5060 (SIP), and headless Edge's `--dump-dom` stopped returning output, so use headless Chrome with its own `--user-data-dir` for measurements. The live site is `https://sms-scam-detector-ie.azurewebsites.net`; it sleeps after about 20 minutes idle.
 
 ## 9. Open questions and pending decisions
 
@@ -124,6 +131,7 @@ Newest first. One entry per session: what was done, what was decided, what's nex
 
 | Date | Summary |
 | --- | --- |
+| 14 Nov 2026 | Stage 10 done: UI restyled to an intense, synth-inspired neumorphic look after the developer approved a prototype (decision 039), and redeployed. Stage order changed: self-review now, user testing moved to a new Stage 13 (decision 038). The developer's self-review found no usability problems, but the model's reasons are weak and it misses requests for money ("Hi mum" scam at 91% legitimate). Next: plan Stage 11 around that. |
 | 13 Nov 2026 | Stage 9 done: deployed to Azure App Service at `sms-scam-detector-ie.azurewebsites.net` (`sms-scam-detector` was taken). Azure for Students only allowed five regions and France Central had no free quota, so it runs on free F1 in Belgium Central (decision 037). Live smoke test passed, including the rate limit, and the log stream showed no message text. Next: plan Stage 10. |
 | 7 Nov 2026 | Stage 8 done: web UI built from `docs/ui-design.md` (decision 036, with clarifications where the spec didn't fit the API). Screenshots of 10 states at 1280px and 390px matched the spec with no sideways scrolling; developer's hand checks all good. Link-only parcel scams came out Unsure – added to Stage 11. Next: plan Stage 9. |
 | 6 Nov 2026 | Stage 7 done: `POST /api/check` built with an app factory, 1,000-character limit, 20 checks per hour per IP, one error shape, and 503 if the model fails to load (decision 035). Checked over HTTP that the server log never contains message text. `ProxyFix` noted for Stage 9. Next: plan Stage 8. |
