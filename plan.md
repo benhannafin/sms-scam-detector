@@ -55,7 +55,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 7 | REST API | Done |
 | 8 | Web UI | Done |
 | 9 | Deployment (Azure App Service) | Done |
-| 10 | Self-review and fixes | In progress |
+| 10 | Self-review and fixes | Done |
 | 11 | Tuning and evaluation | Not started |
 | 12 | Failure handling and hardening | Not started |
 | 13 | User testing and final fixes | Not started |
@@ -413,7 +413,7 @@ sms-scam-detector/
 **Notes after finishing:** Live at `https://sms-scam-detector-ie.azurewebsites.net` on the free F1 plan in Belgium Central. North Europe and UK South were refused because Azure for Students only allows five regions, and France Central had no free F1 quota (decision 037). 239 tests pass locally. On 13 Nov the live smoke test passed every check, including `--rate-limit` (the 21st check was refused), and the live log stream showed no message text.
 
 ## Stage 10 – Self-review and fixes
-**Status:** In progress
+**Status:** Done
 **Goal:** restyle the UI to the synth look the developer approved from a prototype (decision 039), then the developer walks through the live app with a checklist and made-up messages, on phone and laptop, and we fix what's found. User testing with other people moves to Stage 13, so it tests the finished app (decision 038).
 
 **Part A – synth restyle** (spec: `docs/ui-design.md`, updated 14 Nov):
@@ -440,15 +440,25 @@ sms-scam-detector/
 - [x] Restyle matches the updated spec at 1280px and 390px, with no horizontal scrolling (14 Nov: 9 states screenshotted; every state exactly 390px wide)
 - [x] `pytest` passes (249)
 - [x] Redeployed and checked live (14 Nov, developer: "looks good")
-- [ ] Self-review done and its fixes made
-- [ ] Plain-English explanation given and `docs/learning_log.md` summary written
-- [ ] Committed
+- [x] Self-review done and its fixes made (no usability problems found, so no fixes needed)
+- [x] Plain-English explanation given and `docs/learning_log.md` summary written
+- [x] Committed
 **Open questions:** none.
 **Notes after finishing:**
+- **Restyle:** live, and checked by the developer.
+- **Self-review (developer, 14 Nov):** no usability problems on phone or laptop. Every task gave its expected result; look-and-feel and keyboard checks all passed.
+- **Model findings, carried to Stage 11:** the model's reasons are faithful but often unconvincing, because it learned word statistics from an older dataset.
+  - **"delivery":** appears only in scams in the training data (3.7%; no genuine delivery texts exist in it).
+  - **"STOP":** appears in 16.5% of marketing spam (the UK opt-out wording).
+  - **"your":** appears in 39.9% of scams and 7.1% of genuine texts.
+  - **"new":** appears in 9.9% of spam.
+  - **"money":** leans slightly towards genuine, and "send me" appears only in genuine texts. So the model can't recognise requests for money, which is why the "Hi mum" scam gets 91% Looks legitimate (rated **critical**).
+  - **"verify":** appears in only 5 training messages.
+  - **What the developer would actually notice:** a request for money, verification by text rather than email, or a prize without paying.
 
 ## Stage 11 – Tuning and evaluation
 **Goal:** choose the Unsure threshold; test on Irish scam examples from public warnings; measure against targets (≥95% scam-vs-safe recall, ≤5% false alarms).
-**Carried over:** text the model barely understands can still get a confident Looks legitimate. In Stage 10, a short non-English test sentence came out at 84% because a couple of its words are recognised, so the "no recognised terms" rule (decision 032) doesn't catch it. The app is English-only and other languages don't need supporting; the open question is whether mostly-unrecognised text should show Unsure instead of a confident result, or simply be recorded as a limitation; parcel-fee scams with only a link (no phone number) came out as Unsure at 62% and 69% in Stage 8, though that's how most current parcel scams look; the 94.9% test score (decision 031); check probability calibration; try applying the threshold only to Legitimate results (decision 034); test the "Hi mum" scam and messages with few recognised words (decisions 032, 033); review 5-digit short codes and numbers glued to words (decision 030).
+**Carried over:** the Stage 10 self-review findings above (unconvincing reasons; the model can't recognise requests for money; the "Hi mum" scam at 91% Looks legitimate is **critical**); text the model barely understands can still get a confident Looks legitimate. In Stage 10, a short non-English test sentence came out at 84% because a couple of its words are recognised, so the "no recognised terms" rule (decision 032) doesn't catch it. The app is English-only and other languages don't need supporting; the open question is whether mostly-unrecognised text should show Unsure instead of a confident result, or simply be recorded as a limitation; parcel-fee scams with only a link (no phone number) came out as Unsure at 62% and 69% in Stage 8, though that's how most current parcel scams look; the 94.9% test score (decision 031); check probability calibration; try applying the threshold only to Legitimate results (decision 034); test the "Hi mum" scam and messages with few recognised words (decisions 032, 033); review 5-digit short codes and numbers glued to words (decision 030).
 
 ## Stage 12 – Failure handling and hardening
 **Goal:** the app behaves sensibly when the model fails or gives poor output; edge cases covered by tests.

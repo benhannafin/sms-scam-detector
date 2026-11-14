@@ -29,15 +29,16 @@ For each task, check the result matches the "Expect" column, then answer the que
 
 | # | Result as expected? | Verdict clear at a glance? | Reasons make sense? | Noticed the "can be wrong" reminder? | Notes (phone) | Notes (laptop) |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | | | | | | |
-| 2 | | | | | | |
-| 3 | | | | | | |
-| 4 | | | | | | |
-| 5 | | | | | | |
-| 6 | | | | | | |
-| 7 | | — | — | — | | |
-| 8 | | — | — | — | | |
-| 9 | | — | — | — | | |
+| 1 |Yes | Yes| They make sense for the most part, one of the words that is flagged is delivery, which i wouldnt say is a common scam indicator as people often recieve texts from postal services confirming that their parcel has been dleivered or is about to be delivered etc|Yes
+| | 
+| 2 |yes|yes |One of the flaggeed words is STOP, which doesnt make sense to me, im not sure how this indicates spam. The main indicators is that there is the oppprtunity to win a prize without having to pay, that is what makes it suspicious |yes| | |
+| 3 |yes |yes |yes |yes | | |
+| 4 |yes |yes |They make sense, but the main reason i would be suspicious is the fact that the person is recieving a verification message via sms, most legitimate verification messages are sent via email, at least in my experience. I dont understand how "your" is a flagged word |yes | | |
+| 5 |yes |yes |Flagged words are new and send, I understand send but I have no idea why new would be a suspicious word. the main suspicion witht this message is that there is a clear request for money. So unless the sender is trusted its quite possibly an attempt at a scam. |yes | | |
+| 6 |yes |yes |yes |yes | | |
+| 7 |yes | —yes | yes— | yes | | |
+| 8 |yes | yes | yes | yes | | |
+| 9 |yes | yes | yes | yes | | |
 
 **Task 5 is the important one.** Read the result as if you'd never seen the app: does "Looks legitimate" with "Signs to be careful of" tell you clearly enough not to send money? Write down your honest first impression.
 
@@ -45,24 +46,24 @@ For each task, check the result matches the "Expect" column, then answer the que
 
 | Check | ✓ / ✗ | Notes |
 | --- | --- | --- |
-| Keys look pressable; panels look sunken; nothing that isn't a button looks like one | | |
-| Pressing a key sinks it straight away (on press, not on release) | | |
-| The header scrolls away; nothing covers content when you scroll | | |
-| Mono labels are readable; nothing looks cramped or too small | | |
-| The coral, charcoal and grey keys feel consistent | | |
-| On the phone: no sideways scrolling, keys easy to tap, text readable without zooming | | |
-| The result appears smoothly, without a jump | | |
-| Highlights in "Your message" are easy to spot, and the right words are highlighted | | |
-| Wording: nothing sounds alarming, vague or like a guarantee; "safe" never appears | | |
+| Keys look pressable; panels look sunken; nothing that isn't a button looks like one |yes | |
+| Pressing a key sinks it straight away (on press, not on release) | yes| |
+| The header scrolls away; nothing covers content when you scroll | yes| |
+| Mono labels are readable; nothing looks cramped or too small | yes| |
+| The coral, charcoal and grey keys feel consistent | yes| |
+| On the phone: no sideways scrolling, keys easy to tap, text readable without zooming | yes| |
+| The result appears smoothly, without a jump | yes| |
+| Highlights in "Your message" are easy to spot, and the right words are highlighted | yes| |
+| Wording: nothing sounds alarming, vague or like a guarantee; "safe" never appears | yes| |
 
 ## 3. Keyboard and accessibility (laptop)
 
 | Check | ✓ / ✗ | Notes |
 | --- | --- | --- |
-| Tab through the whole flow: every key reachable, focus ring always visible | | |
-| Enter or Space presses the focused key | | |
-| After a result, the next Tab starts somewhere sensible | | |
-| Zoom the browser to 200% (Ctrl and +): still usable, nothing cut off | | |
+| Tab through the whole flow: every key reachable, focus ring always visible |yes | |
+| Enter or Space presses the focused key | yes| |
+| After a result, the next Tab starts somewhere sensible | yes| |
+| Zoom the browser to 200% (Ctrl and +): still usable, nothing cut off |yes | |
 
 ## 4. Anything else
 
