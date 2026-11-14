@@ -18,6 +18,7 @@ Layered modular monolith: one Flask app, one module per component, modules talk 
 | ML | `preprocessor` | Clean the text: raw text → cleaned text with tokens |
 | ML | `classifier` | Classify: cleaned text → label + probability per class + recognised-term count + term contributions; Load model: version → model |
 | ML | `explainer` | Explain: cleaned text + prediction → up to 3 reasons (for Legitimate: signs to be careful of) |
+| Application | `signals` | Find signs: cleaned text → list of warning signs (decision 041) |
 | Offline | `training` | Trains, evaluates and saves the model file |
 
 Not built yet (designed for later): feedback API, feedback service and store, scheduled retraining, monitoring.
@@ -482,7 +483,42 @@ It runs in three steps, with a check-in between each:
   It scores only the design half unless run with `--held-out`, which is reserved for step 3.
 - **Overlap check:** messages must not already be in the training data, after cleaning.
 
-**Step 2 – Decide (separate plan, after step 1's results):** from the design half's results, the developer chooses: the hand-written warning signs (option C) and exactly what they do; which words to leave out of the reasons (option B); the Unsure threshold (keep 0.7, tune it, or apply it only to Legitimate results); and what to do about calibration, mostly-unrecognised text, link-only parcel scams and short codes.
+**Step 2 – Decided 14 Nov (decision 041):**
+- **Unknown sender:** the app assumes every message comes from a number the user doesn't know.
+- **Warning signs:** three, in a new `app/signals` package: (a) a new-number opener, (b) asks for card details, a photo of a card, or a code, (c) asks for money or a payment. Each shows as a reason and turns a confident Looks legitimate into Unsure; a sign never makes a result Likely scam on its own.
+- **Clearer reasons (option B):** filler words are left out of the reasons shown.
+- **Threshold:** stays at 0.7.
+- **Wording:** the Looks legitimate advice and a home-page line state the unknown-sender assumption.
+- **Known limitations, no change:** mostly-unrecognised text, link-only parcel scams, short codes, calibration, and over-caution on genuine texts.
+
+**Step 3 – Build plan (approved 14 Nov, in progress):**
+- **`app/signals`:** `find_signs(cleaned_text)` returns a list of `Sign(name, term, text)` from simple patterns on the cleaned text. `term` is the matched words, used for highlighting, and `text` is the reason wording:
+  - `new_number`: "new / temporary / other number", "save this number", "phone broken / crashed / not working / dead / lost", "dropped my phone" → "Says it's from a new or temporary number"
+  - `card_or_code`: asks for "card number / card details", "a photo of your card", or "the code" → "Asks for card details or a code"
+  - `money_request`: "send me" or "transfer" with money, "pay a bill for me", "lend me", "need money" → "Asks you to send money or pay something"
+  - **Must not match:** "Your verification code is 482913" (gives a code, doesn't ask for one), "Can you send me the photos", "Your new SIM has been activated".
+- **Check service:**
+  - after the existing "no recognised terms" rule, it runs `find_signs`
+  - if the model says ham, any sign makes the result `unsure` with a new status `warning_signs` and `confidence` empty (a high ham probability next to Unsure would read as reassurance)
+  - in every case, the signs come first in the reasons, followed by the explainer's, up to 3 in total
+- **Explainer (option B):** a term is left out if every word in it is a filler word (`your`, `you`, `to`, `has`, `have`, `for`, `been`, `the`, `a`, `an`, `is`, `it`, `me`, `my`, `and`, `of`, `in`, `on`, `at`, `this`, `that`, `please`, `be`, `we`, `are`, `was`, `will`, `can`, `do`, `if`, `or`, `with`, `from`, `by`, `so`, `as`). So "you have" is left out, but "your order" stays.
+- **API:** `status` gains the value `warning_signs`; nothing else changes.
+- **Web:**
+  - the Unsure template gets the line "We found warning signs, so we can't rate this message as legitimate." for `warning_signs` (no meter)
+  - the Looks legitimate advice changes from "No check is perfect. If the number is unknown to you, stay cautious." to "No check is perfect. Don't send money or details to a number you don't know."
+  - the helper text changes from "Paste the whole message for the best result." to "Paste the whole text from a number you don't recognise."
+- **Docs:** update the interface tables (CLAUDE.md, plan, handover), `docs/ui-design.md`, and decisions 034 and 041.
+- **Re-measure:** score the design half, then the **held-out half once** (`--held-out`), and record both against step 1.
+- **Files:** `app/signals/__init__.py`, `app/signals/signals.py`, `app/check_service/service.py`, `app/explainer/explainer.py`, `app/web/templates/index.html`, `app/web/static/js/check.js`, tests (`test_signals.py`, plus updates to the check service, explainer, API and web tests), docs.
+- **Tests:**
+  - each sign's positive phrases, and the "must not match" phrases above
+  - check service: ham plus a sign gives `unsure` / `warning_signs` with no confidence and the sign first; spam or scam plus a sign gives the same label with the sign first in the reasons; with no sign, the result is unchanged
+  - explainer: filler-only terms are left out, mixed terms stay
+  - API returns the new status
+  - web: the new wording is present, and no "safe"
+  - every earlier test passes, apart from the ones whose wording deliberately changes
+
+**Original step 2 scope (kept for the record):** from the design half's results, the developer chooses: the hand-written warning signs (option C) and exactly what they do; which words to leave out of the reasons (option B); the Unsure threshold (keep 0.7, tune it, or apply it only to Legitimate results); and what to do about calibration, mostly-unrecognised text, link-only parcel scams and short codes.
 
 **Step 3 – Fix and re-measure (separate plan):** build the chosen fixes with tests, then score both halves; the held-out half shows whether the fixes generalise.
 
@@ -495,16 +531,45 @@ It runs in three steps, with a check-in between each:
 - The summary counts are right on a made-up set run through the mock classifier.
 - The script won't score the held-out half without `--held-out`.
 **Done when (step 1):**
-- [ ] Reference set collected, reviewed by the developer and committed (47 rows drafted 14 Nov: 2 verbatim + 20 modelled scams, 10 marketing, 15 genuine; waiting for the developer's hand-copied verbatim scams and review)
+- [x] Reference set collected, reviewed by the developer and committed (53 rows, frozen 14 Nov in `486baf5`: 8 verbatim scams, 6 of them copied by hand from Bank of Ireland's images with links replaced by a neutral link; 20 modelled scams; 10 marketing; 15 genuine)
 - [x] Evaluation script and tests done; `pytest` passes (268)
-- [ ] Design-half results recorded in these notes
-- [ ] Step 2 plan written
+- [x] Design-half results recorded in these notes (below)
+- [x] Step 2 plan written
 
 **Done when (whole stage):**
-- [ ] Fixes chosen, built and tested; both halves scored and recorded
-- [ ] Plain-English explanation given and `docs/learning_log.md` summary written
-- [ ] Committed and redeployed
+- [x] Fixes chosen, built and tested; both halves scored and recorded (307 tests pass)
+- [x] Plain-English explanation given and `docs/learning_log.md` summary written
+- [ ] Committed and redeployed (committed 14 Nov; waiting for the developer to redeploy)
 **Open questions:** none for step 1.
+**Step 1 results – design half (27 messages, model v1, threshold 0.7, 14 Nov):**
+
+| Group | Caught | Unsure | Missed (confident Looks legitimate) | False alarm |
+| --- | --- | --- | --- | --- |
+| Verbatim scams (4) | 3 | 0 | 1 | – |
+| Modelled scams (10) | 5 | 3 | 2 | – |
+| Marketing (5) | 4 | 1 | 0 | – |
+| Genuine (8) | 3 correct | 5 | – | 0 |
+
+- **Scams with a warning:** 11 of 14 (79%). **All 3 missed scams are family impersonation:** S02 "hey mam… save this number" (verbatim, 88% legitimate), S17 "Hi mum… new number… send me 450" (87%), and S18 "Hi Dad… temporary number… pay a bill" (89%). No threshold can fix these.
+- **Genuine texts flagged as spam or scam:** none. But **5 of 8 genuine texts were Unsure** (delivery update 0.42, delivery confirmation 0.62, appointment reminder 0.41, new SIM 0.43, running late 0.68). Three of them leaned to spam or scam ("reply", "order", "your", "has been").
+- **Reasons are often function words:** "your", "to", "has", "for", "been", "please".
+- **Thresholds on this half:** 0.6 would cut genuine Unsure from 5 to 3 and lose no scams here, but training cross-validation showed 0.6 catches only 20 of 39 dangerous mistakes, against 28 at 0.7 (decision 034). Applying Unsure only to Legitimate results would turn 3 genuine Unsures into false alarms (G01, G08, G13).
+- **Few recognised words:** every message here had 9 or more recognised terms, so this half gives no evidence on mostly-unrecognised text.
+
+**Step 3 results (14 Nov, model v1, threshold 0.7, warning signs and filler-word clean-up added):**
+
+| Half | Scams missed (confident Looks legitimate) | Scams with a warning | Genuine flagged as spam or scam | Genuine Unsure | Marketing caught |
+| --- | --- | --- | --- | --- | --- |
+| Design, before (step 1) | 3 of 14 | 11 of 14 | 0 of 8 | 5 of 8 | 4 of 5 |
+| Design, after | **0 of 14** | **14 of 14** | 0 of 8 | 6 of 8 (+G06, intended) | 4 of 5 |
+| Held-out, without signs (for comparison) | 1 of 14 (S19, photo of a bank card) | 13 of 14 | 0 of 7 | 5 of 7 | 4 of 5 |
+| **Held-out, after (scored once)** | **0 of 14** | **14 of 14** | **0 of 7** | 5 of 7 | 4 of 5 |
+
+- **Signs generalise:** on the held-out half, which they weren't designed on, they caught the one miss (S19, "send me a photo of your bank card") and changed no genuine result. On the design half they caught all 3 family-impersonation scams. The only other change was G06 ("Mam can you transfer me 20"), which became Unsure, as intended under the unknown-sender assumption.
+- **Still a limitation:** many scams are Unsure rather than Likely scam (6 of 14 on design, 9 of 14 on held-out), and most genuine texts are Unsure (11 of 15 across both halves, including codes, a bin reminder and a bill). That's honest caution rather than reassurance, but it limits how useful the app is; recorded as a known limitation (041).
+- **Reasons:** filler words are gone. Some numbers still appear as reasons ("19", from a time such as 19:25), as do weak words like "due".
+- **Test set:** not re-scored. It was for the model (023), and the held-out half is what measures the warning signs.
+
 **Notes after finishing:**
 **Carried over:** the Stage 10 self-review findings above (unconvincing reasons; the model can't recognise requests for money; the "Hi mum" scam at 91% Looks legitimate is **critical**); text the model barely understands can still get a confident Looks legitimate. In Stage 10, a short non-English test sentence came out at 84% because a couple of its words are recognised, so the "no recognised terms" rule (decision 032) doesn't catch it. The app is English-only and other languages don't need supporting; the open question is whether mostly-unrecognised text should show Unsure instead of a confident result, or simply be recorded as a limitation; parcel-fee scams with only a link (no phone number) came out as Unsure at 62% and 69% in Stage 8, though that's how most current parcel scams look; the 94.9% test score (decision 031); check probability calibration; try applying the threshold only to Legitimate results (decision 034); test the "Hi mum" scam and messages with few recognised words (decisions 032, 033); review 5-digit short codes and numbers glued to words (decision 030).
 

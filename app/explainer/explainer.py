@@ -17,6 +17,14 @@ TOKEN_NAME = {
     "phonetoken": "[phone number]",
 }
 
+# Terms made only of these are left out of the reasons shown: true to the model, but meaningless
+# to a reader (decision 041). The model's decisions don't change.
+FILLER_WORDS = {
+    "your", "you", "to", "has", "have", "for", "been", "the", "a", "an", "is", "it", "me", "my",
+    "and", "of", "in", "on", "at", "this", "that", "please", "be", "we", "are", "was", "will",
+    "can", "do", "if", "or", "with", "from", "by", "so", "as",
+}
+
 # Matches how the model splits text into words, so terms can be checked against the message.
 WORD = re.compile(r"(?u)\b\w\w+\b")
 
@@ -40,7 +48,10 @@ def explain(cleaned_text, prediction):
 
     in_message = _terms_in(cleaned_text)
     candidates = sorted(
-        (term for term, score in scores.items() if score >= MIN_STRENGTH and term in in_message),
+        (
+            term for term, score in scores.items()
+            if score >= MIN_STRENGTH and term in in_message and not set(term.split()) <= FILLER_WORDS
+        ),
         key=lambda term: (-scores[term], term),
     )
 

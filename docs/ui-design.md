@@ -118,7 +118,7 @@ Tighter letter-spacing on large text, none on body text. **Mono is for the "prin
 - **Left:** headline "Not sure about a text message?"; lead "Paste it in and we'll tell you whether it looks legitimate, like marketing spam, or like a scam, and show you why."; sunken privacy notice with a lock icon: "Your message is checked and then discarded. It is never stored."
 - **Right:** card containing:
   - label "Paste the text message" + text box (placeholder "e.g. Your parcel is held. Pay the fee at…")
-  - helper row: "Paste the whole message for the best result." and a live counter "N / MAX characters" (MAX = the limit already enforced by the API's input validation)
+  - helper row: "Paste the whole text from a number you don't recognise." (the app assumes an unknown sender, decision 041) and a live counter "N / MAX characters" (MAX = the limit already enforced by the API's input validation)
   - primary button **Check message**
   - "Or try an example" + three chip buttons: **Parcel fee**, **Prize offer**, **Friend running late** (each fills the text box with a sample message)
 
@@ -146,10 +146,11 @@ Below: **How it works** – three sunken tiles (STEP 1 Paste / STEP 2 Check / ST
 | --- | --- | --- | --- | --- |
 | scam | Likely scam | Warning triangle | This message has strong signs of a scam. | Don't click the link or call any number in the message. · Don't reply or share any details. · If you are worried, contact the organisation using a number or website you already know. |
 | spam | Marketing spam | Megaphone | This looks like advertising: unwanted, but not a scam. | You can ignore or delete it. · Only reply STOP if it's from a company you recognise. · Never share personal or payment details by text. |
-| ham | Looks legitimate | Speech bubble (no tick – never implies "safe") | We found none of the common scam or spam signs. | No check is perfect. If the number is unknown to you, stay cautious. · If a later message asks for money or details, check that one too. |
+| ham | Looks legitimate | Speech bubble (no tick – never implies "safe") | We found none of the common scam or spam signs. | No check is perfect. Don't send money or details to a number you don't know. · If a later message asks for money or details, check that one too. |
 | unsure | Unsure | Question mark in a circle | We can't tell confidently what this is, so treat it with caution. | Treat it with caution until you are sure who sent it. · Don't call the number in the message. · Contact the organisation using a number or website you already know. |
 
-- **Confidence label:** "Confidence N%" for rated results. For **Unsure**: "Closest match: <label>" and "N%, too low to rate".
+- **Confidence label:** "Confidence N%" for rated results. For **Unsure**: "N%, too low to rate" (no "Closest match" line, decision 036). With no meter: "We didn't recognise enough of this message to rate it." when nothing was recognised, and "We found warning signs, so we can't rate this message as legitimate." when a warning sign ruled out Looks legitimate (status `warning_signs`, decision 041).
+- **Warning signs** appear first in the reasons, as ordinary rows; their matched words are highlighted like any other reason.
 - **Reasons and highlights** come from the explainer's output – render whatever it returns; don't hard-code them.
 
 ## 6. Motion

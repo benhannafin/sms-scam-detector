@@ -38,7 +38,7 @@ RESULT_CONTENT = {
         "Looks legitimate",
         "We found none of the common scam or spam signs.",
         [
-            "No check is perfect. If the number is unknown to you, stay cautious.",
+            "No check is perfect. Don't send money or details to a number you don't know.",
             "If a later message asks for money or details, check that one too.",
         ],
     ),
@@ -123,7 +123,7 @@ def test_home_page_loads(client):
     "Your message is checked and then discarded. It is never stored.",
     "Paste the text message",
     "e.g. Your parcel is held. Pay the fee at…",
-    "Paste the whole message for the best result.",
+    "Paste the whole text from a number you don't recognise.",
     "Check message",
     "Or try an example",
     "How it works",
@@ -197,6 +197,11 @@ def test_unsure_extra_wording(parsed):
     unsure = parsed.find("template", id="result-unsure")[0]
     assert unsure["data-no-reasons"] == "There were no clear signs either way."
     assert unsure["data-not-recognised"] == "We didn't recognise enough of this message to rate it."
+    assert unsure["data-warning-signs"] == "We found warning signs, so we can't rate this message as legitimate."
+
+
+def test_script_shows_the_warning_signs_line_by_status():
+    assert 'status === "warning_signs" ? template.dataset.warningSigns' in JS
 
 
 @pytest.mark.parametrize("code, text", [

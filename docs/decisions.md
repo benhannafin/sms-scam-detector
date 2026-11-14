@@ -48,6 +48,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 038 | Self-review now, user testing last (new Stage 13) | Accepted |
 | 039 | Synth restyle: intense neumorphism, cool grey, keys | Accepted |
 | 040 | Stage 11 approach: reference set first, then rules alongside the model | Accepted |
+| 041 | Unknown sender, warning signs, clearer reasons, threshold kept | Accepted |
 
 ---
 
@@ -259,6 +260,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Status:** Accepted (6 Nov 2026)
 **Context:** The API returns `{label, confidence, status, reasons}`, but `status` was never defined. Cross-validation on the training portion (4,565 messages) showed the model is less confident when it's wrong. With Unsure below a top probability of 0.7, 9.9% of messages showed Unsure, catching 115 of 156 wrong answers and 28 of the 39 spam or scam messages rated ham. At 0.8 it was 22.0% of messages and 33 of 39. Even correct ham answers had a median confidence of only 88%.
 **Decision:** `label` is `ham`, `spam`, `smishing` or `unsure`. `status` says why: `rated`, `low_confidence` or `no_recognised_terms`. `confidence` is the top probability, or empty when nothing was recognised. No recognised terms always gives Unsure (see 032). Below the threshold, the placeholder 0.7, the result is Unsure with the explainer's reasons for the most likely label, but never "No common scam signs found", which next to Unsure could read as reassurance. The threshold applies to every label, as in 005. `CheckService` is given its classifier when created, so tests can use the mock. Display names and the verify reminder belong to the web pages (Stage 8).
+**Change (14 Nov 2026):** `status` gains a fourth value, `warning_signs`. A hand-written warning sign has turned a Looks legitimate result into Unsure, and `confidence` is empty (see 041).
 **Alternatives considered:** Keep the model's label and use `status` alone to flag Unsure (the UI could show a Legitimate label on an Unsure result by mistake); 0.8 (more than 1 in 5 messages Unsure); no reasons on Unsure (users get nothing to judge with); apply the threshold only to Legitimate results (at 0.7, 230 Unsure messages instead of 451, catching the same 28 dangerous ones; to try in Stage 11).
 **Consequences:** About 1 in 10 messages may show Unsure until Stage 11 tunes the threshold. Low confidence partly reflects the balanced class weights, so calibration is checked in Stage 11.
 
@@ -371,3 +373,25 @@ All text colours were checked on the new grey and pass 4.5:1. The prototype's fi
 - **Modelled:** scams written by Claude, each based on a specific warning's description, with the source recorded, and written before any rules.
 
 An `origin` column marks each message, and results are reported separately for each group. Rejected: verbatim only (too few, about 2 to 4); modelled only (our own wording, which may be more typical than real scams, or easier for rules we design). This widens 025 further: scams are no longer only verbatim public warnings.
+
+## 041 – Unknown sender, warning signs, clearer reasons, threshold kept
+**Status:** Accepted (14 Nov 2026)
+**Context:** On the reference set's design half (27 messages, threshold 0.7), 11 of 14 scams got a warning, but all 3 missed scams were family impersonation texts rated 87–89% legitimate. One of them was a real "hey mam… save this number" text. No genuine text was flagged as spam or scam, but 5 of 8 were Unsure. Reasons were often filler words. A threshold of 0.6 helped genuine texts on this half, but in training cross-validation it caught 20 of 39 dangerous mistakes, against 28 at 0.7. Applying Unsure only to Legitimate results would have turned 3 genuine Unsures into false alarms. The developer proposed assuming the message comes from an unknown number.
+**Decision:**
+- **Unknown sender:** the app assumes the sender is a number the user doesn't know. From an unknown number, asking for money is suspicious in itself.
+- **Warning signs:** a new `app/signals` package finds three signs in the cleaned text: a new-number opener, asking for card details or a code, and asking for money or a payment. Each shows as a reason. If the model says Legitimate, any sign makes the result Unsure, with a new status `warning_signs` and no confidence. Signs never make a result Likely scam on their own.
+- **Clearer reasons (option B):** terms made only of filler words are left out of the reasons shown. The model's decisions don't change.
+- **Threshold:** stays at 0.7, putting safety first (026).
+- **Wording:** the Looks legitimate advice becomes "No check is perfect. Don't send money or details to a number you don't know.", and the home page's helper text becomes "Paste the whole text from a number you don't recognise."
+- **Known limitations, no change:** mostly-unrecognised text, link-only parcel scams, short codes, calibration, and Unsure on some genuine texts.
+**Alternatives considered:**
+- **A money sign without the unknown-sender assumption:** would wrongly flag genuine family requests such as G06.
+- **Lowering the threshold:** large safety cost in cross-validation.
+- **Applying the threshold only to Legitimate results:** false alarms on genuine texts.
+- **Retraining:** see 040.
+- **Showing the ham confidence on a warning-signs Unsure:** 89% next to Unsure reads as reassurance.
+**Consequences:**
+- **Genuine money requests:** these, such as G06 "Mam can you transfer me 20 for the bus", now show Unsure. That's the intended advice from an unknown number, and Unsure isn't counted as a false alarm, so no frozen labels change.
+- **Interfaces:** the check result and API gain a status value (034), and the architecture gains `app/signals` (040).
+- **Rules:** they only catch the phrasings they list. The held-out half tests whether they work beyond the design half.
+- **Report:** states the unknown-sender scope.

@@ -48,6 +48,18 @@ def test_no_recognised_terms_gives_null_confidence():
     assert body == {"label": "unsure", "confidence": None, "status": "no_recognised_terms", "reasons": []}
 
 
+def test_warning_signs_status_reaches_the_api():
+    prediction = Prediction("ham", {"ham": 0.9, "spam": 0.05, "smishing": 0.05}, 5)
+    client = create_app(classifier=MockClassifier(prediction)).test_client()
+    body = post(client, json={"message": "Hi mum this is my new number"}).get_json()
+    assert body == {
+        "label": "unsure",
+        "confidence": None,
+        "status": "warning_signs",
+        "reasons": [{"term": "new number", "text": "Says it's from a new or temporary number"}],
+    }
+
+
 @pytest.mark.parametrize("kwargs", [
     {"data": "not json at all"},
     {"data": '{"message": "unclosed'},

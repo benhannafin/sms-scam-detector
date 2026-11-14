@@ -76,13 +76,14 @@
     return Math.min(99, Math.floor(confidence * 100 + 1e-9));
   }
 
-  function confidenceBlock(label, confidence, template) {
+  function confidenceBlock(label, confidence, status, template) {
     const block = document.createDocumentFragment();
     const line = document.createElement("p");
     line.className = "confidence-label";
 
+    // No meter when there's no confidence to show (decisions 032, 041).
     if (confidence === null) {
-      line.textContent = template.dataset.notRecognised;
+      line.textContent = status === "warning_signs" ? template.dataset.warningSigns : template.dataset.notRecognised;
       block.append(line);
       return block;
     }
@@ -163,7 +164,7 @@
     const hamWithSigns = label === "ham" && hasSigns;
 
     if (hamWithSigns) content.querySelector(".summary").textContent = template.dataset.signsSummary;
-    content.querySelector(".confidence").append(confidenceBlock(label, result.confidence, template));
+    content.querySelector(".confidence").append(confidenceBlock(label, result.confidence, result.status, template));
 
     resultView.className = "view result--" + THEMES[label];
     verdictCard.replaceChildren(content);

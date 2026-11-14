@@ -43,6 +43,25 @@ def test_spam_reasons_use_the_spam_scores():
     assert [r.term for r in explain("txt to claim", prediction)] == ["txt", "claim"]
 
 
+def test_terms_made_only_of_filler_words_are_left_out():
+    prediction = make_prediction("smishing", {
+        "your": (-0.9, 0.0, 0.9),
+        "you have": (-0.8, 0.0, 0.8),
+        "your order": (-0.5, 0.0, 0.5),
+        "claim": (-0.4, 0.0, 0.4),
+    })
+    reasons = explain("your order you have to claim", prediction)
+    assert [r.term for r in reasons] == ["your order", "claim"]
+
+
+def test_filler_words_leave_room_for_meaningful_reasons():
+    prediction = make_prediction("ham", {
+        "to": (-0.4, 0.2, 0.2),
+        "new": (-0.2, 0.1, 0.1),
+    })
+    assert [r.term for r in explain("new to", prediction)] == ["new"]
+
+
 def test_terms_weaker_than_the_minimum_are_not_reasons():
     prediction = make_prediction("smishing", {"urltoken": (-0.6, 0.0, 0.8), "is": (-0.1, 0.0, 0.1)})
     assert [r.term for r in explain("is urltoken", prediction)] == ["urltoken"]

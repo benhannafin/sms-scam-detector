@@ -100,7 +100,7 @@ def test_nothing_is_logged_during_a_check(real_service, caplog):
 def test_real_results_have_the_right_shape_and_never_say_safe(real_service, message):
     result = real_service.check(message)
     assert result.label in {"ham", "spam", "smishing", "unsure"}
-    assert result.status in {"rated", "low_confidence", "no_recognised_terms"}
+    assert result.status in {"rated", "low_confidence", "no_recognised_terms", "warning_signs"}
     assert result.confidence is None or 0 <= result.confidence <= 1
     assert len(result.reasons) <= 3
     assert "safe" not in f"{result.label} {result.status}"
@@ -117,3 +117,60 @@ def test_real_scam_is_rated_likely_scam(real_service):
 
 def test_real_unknown_words_are_unsure(real_service):
     assert real_service.check("xyzzy qwertyuiop").status == "no_recognised_terms"
+
+
+# ---------- Warning signs (decision 041) ----------
+
+NEW_NUMBER = Reason(term="new number", text="Says it's from a new or temporary number")
+MONEY = Reason(term="send me 450", text="Asks you to send money or pay something")
+
+
+def test_legitimate_with_a_warning_sign_becomes_unsure_with_no_confidence():
+    result = check_with(make_prediction("ham", 0.95), "hi this is my new number")
+    assert (result.label, result.status, result.confidence) == ("unsure", "warning_signs", None)
+    assert result.reasons[0] == NEW_NUMBER
+
+
+def test_warning_signs_beat_low_confidence_for_a_legitimate_lean():
+    result = check_with(make_prediction("ham", 0.55), "hi this is my new number")
+    assert result.status == "warning_signs"
+
+
+def test_warning_signs_drop_no_common_scam_signs_found():
+    contributions = {"later": {"ham": 0.2, "spam": -0.1, "smishing": -0.1}}
+    result = check_with(make_prediction("ham", 0.9, contributions=contributions), "new number see you later")
+    assert NO_SIGNS not in result.reasons
+
+
+def test_signs_come_first_on_a_scam_result_and_keep_its_label():
+    contributions = {"urltoken": {"ham": -0.6, "spam": 0.1, "smishing": 0.5}}
+    result = check_with(make_prediction("smishing", 0.9, contributions=contributions), "send me 450 at www.pay.com")
+    assert (result.label, result.status) == ("smishing", "rated")
+    assert result.reasons == [MONEY, Reason(term="urltoken", text="Contains a link")]
+
+
+def test_signs_never_turn_a_result_into_likely_scam():
+    result = check_with(make_prediction("ham", 0.95), "hi mum new number, send me 450")
+    assert result.label != "smishing"
+
+
+def test_at_most_3_reasons_with_signs():
+    contributions = {w: {"ham": -0.5, "spam": 0.0, "smishing": 0.5} for w in ("aa", "bb", "cc")}
+    message = "new number send me 450 aa bb cc"
+    result = check_with(make_prediction("smishing", 0.9, contributions=contributions), message)
+    assert len(result.reasons) == 3
+    assert result.reasons[:2] == [NEW_NUMBER, MONEY]
+
+
+def test_no_signs_leaves_the_result_unchanged():
+    result = check_with(make_prediction("ham", 0.9), "see you later")
+    assert (result.label, result.status) == ("ham", "rated")
+
+
+def test_real_hi_mum_scam_is_no_longer_looks_legitimate(real_service):
+    result = real_service.check("Hi mum, my phone is broken, this is my new number, can you send me money")
+    assert (result.label, result.status, result.confidence) == ("unsure", "warning_signs", None)
+    assert [r.text for r in result.reasons[:2]] == [
+        "Says it's from a new or temporary number",
+        "Asks you to send money or pay something",
+    ]

@@ -28,10 +28,11 @@ One Flask app. One package per component. Packages talk **only through their int
 | --- | --- | --- |
 | `app/web` | Presentation: check, result and problem-with-input pages | Calls the API |
 | `app/api` | REST API, input validation, rate limiting | `POST /api/check`: `{message}` → `{label, confidence, status, reasons}` |
-| `app/check_service` | Runs a check; applies the Unsure rule | Check a message: text → check result |
+| `app/check_service` | Runs a check; applies the Unsure rules and warning signs | Check a message: text → check result |
 | `app/preprocessor` | Cleans text | Clean the text: raw text → cleaned text |
 | `app/classifier` | ML model (+ a mock with the same interface) | Classify: cleaned text → label + probability per class + recognised-term count + term contributions; Load model: version → model |
 | `app/explainer` | Reasons behind a result | Explain: cleaned text + prediction → up to 3 reasons (for Legitimate: signs to be careful of) |
+| `app/signals` | Hand-written warning signs (decision 041) | Find signs: cleaned text → list of signs (new number, card or code, money request) |
 | `training/` | Offline: trains, evaluates and saves the model | Writes `models/` |
 
 Labels: `ham` (shown as Legitimate), `spam` (Marketing spam), `smishing` (Likely scam).
