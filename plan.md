@@ -439,7 +439,7 @@ sms-scam-detector/
 **Done when:**
 - [x] Restyle matches the updated spec at 1280px and 390px, with no horizontal scrolling (14 Nov: 9 states screenshotted; every state exactly 390px wide)
 - [x] `pytest` passes (249)
-- [ ] Redeployed and checked live
+- [x] Redeployed and checked live (14 Nov, developer: "looks good")
 - [ ] Self-review done and its fixes made
 - [ ] Plain-English explanation given and `docs/learning_log.md` summary written
 - [ ] Committed
@@ -448,7 +448,7 @@ sms-scam-detector/
 
 ## Stage 11 – Tuning and evaluation
 **Goal:** choose the Unsure threshold; test on Irish scam examples from public warnings; measure against targets (≥95% scam-vs-safe recall, ≤5% false alarms).
-**Carried over:** parcel-fee scams with only a link (no phone number) came out as Unsure at 62% and 69% in Stage 8, though that's how most current parcel scams look; the 94.9% test score (decision 031); check probability calibration; try applying the threshold only to Legitimate results (decision 034); test the "Hi mum" scam and messages with few recognised words (decisions 032, 033); review 5-digit short codes and numbers glued to words (decision 030).
+**Carried over:** text the model barely understands can still get a confident Looks legitimate. In Stage 10, a short non-English test sentence came out at 84% because a couple of its words are recognised, so the "no recognised terms" rule (decision 032) doesn't catch it. The app is English-only and other languages don't need supporting; the open question is whether mostly-unrecognised text should show Unsure instead of a confident result, or simply be recorded as a limitation; parcel-fee scams with only a link (no phone number) came out as Unsure at 62% and 69% in Stage 8, though that's how most current parcel scams look; the 94.9% test score (decision 031); check probability calibration; try applying the threshold only to Legitimate results (decision 034); test the "Hi mum" scam and messages with few recognised words (decisions 032, 033); review 5-digit short codes and numbers glued to words (decision 030).
 
 ## Stage 12 – Failure handling and hardening
 **Goal:** the app behaves sensibly when the model fails or gives poor output; edge cases covered by tests.
