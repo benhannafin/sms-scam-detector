@@ -2,7 +2,7 @@
 
 **Read this first.** This file lets any AI assistant (or person) pick up the project with no prior context. It's updated at the end of every working session. For full detail, it points to the other files in this repo.
 
-**Last updated:** 13 Nov 2026 · **Current stage:** 10 – Usability testing (planning)
+**Last updated:** 13 Nov 2026 · **Current stage:** 10 – Self-review and fixes (planning; UI changes first)
 
 ---
 
@@ -30,7 +30,7 @@
 | --- | --- |
 | `handover.md` | This file – current state and next steps |
 | `plan.md` | Architecture summary, conventions, workflow, all stages with status and detail |
-| `docs/decisions.md` | Architecture decision record: 37 decisions with context, alternatives and consequences |
+| `docs/decisions.md` | Architecture decision record: 39 decisions with context, alternatives and consequences |
 | `CLAUDE.md` | Standing instructions for Claude Code (also useful for any AI) |
 | `docs/learning_log.md` | Developer's own summaries after each stage |
 | `docs/ui-design.md` | Approved UI design spec for Stage 8 |
@@ -102,12 +102,12 @@ pytest
 | 7 | REST API | Done (`app/api`, `create_app`, 171 tests passing, pushed) |
 | 8 | Web UI | Done (`app/web`, 226 tests passing, checked at 1280px and 390px, pushed) |
 | 9 | Deployment | Done (live at `https://sms-scam-detector-ie.azurewebsites.net`, free F1 in Belgium Central, all live checks passed, pushed) |
-| 10 | Usability testing and fixes | **Planning** |
-| 11–12 | Tuning → hardening | Not started |
+| 10 | Self-review and fixes | **Planning – developer wants UI changes first** |
+| 11–13 | Tuning → hardening → user testing (moved last, decision 038) | Not started |
 
 ## 8. Next action
 
-Plan **Stage 10** (usability testing): the developer decides who takes part, the tasks, what's recorded and whether consent or ethics approval is needed, then Claude drafts the test materials. Test messages must be made up, never participants' real texts (025). Fixes from testing come back as code changes. The live site is `https://sms-scam-detector-ie.azurewebsites.net`; it sleeps after about 20 minutes idle.
+**Stage 10** is now a self-review (decision 038); user testing moved to a new Stage 13 at the end, with its design kept in Stage 13's notes in `plan.md`. First, a synth-style restyle the developer approved from a prototype (decision 039, spec updated in `docs/ui-design.md`). Part A (restyle) is built: 249 tests pass, and screenshots at 1280px and 390px match the approved prototype. Next: commit, the developer redeploys (README "Deploy" steps) and checks it live, then Claude writes the Part B self-review checklist (`docs/self-review.md`). Note for screenshots: browsers block port 5060 (SIP), and headless Edge's `--dump-dom` stopped returning output, so use headless Chrome with its own `--user-data-dir` for measurements. The live site is `https://sms-scam-detector-ie.azurewebsites.net`; it sleeps after about 20 minutes idle.
 
 ## 9. Open questions and pending decisions
 
