@@ -1,4 +1,4 @@
-// Home and result views (decision 036). The message is kept in memory only and is
+// Home and result views (decisions 036, 042). The message is kept in memory only and is
 // only ever inserted as text, never as HTML.
 (function () {
   "use strict";
@@ -14,14 +14,12 @@
   const resultView = document.getElementById("result-view");
   const verdictCard = document.getElementById("verdict-card");
   const messagePanel = document.getElementById("result-message");
-  const highlightNote = document.getElementById("highlight-note");
   const reasonsHeading = document.getElementById("reasons-heading");
   const reasonsList = document.getElementById("reasons");
   const navHow = document.getElementById("nav-how");
   const navBack = document.getElementById("nav-back");
 
   const MAX = Number(counter.dataset.max);
-  const TOKENS = new Set(["urltoken", "moneytoken", "phonetoken"]);
   const THEMES = { smishing: "scam", spam: "spam", ham: "legit", unsure: "unsure" };
 
   // Counts characters the way the API does, so an emoji counts as one.
@@ -113,49 +111,6 @@
     return block;
   }
 
-  function escapeRegExp(text) {
-    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
-  // Words and word pairs only: links, money and phone numbers aren't highlighted (decision 036).
-  function findHighlights(message, reasons) {
-    const ranges = [];
-    for (const reason of reasons) {
-      if (!reason.term) continue;
-      const words = reason.term.split(" ");
-      if (words.some((word) => TOKENS.has(word))) continue;
-      const body = words.map(escapeRegExp).join("[^\\p{L}\\p{N}_]+");
-      const pattern = new RegExp("(?<![\\p{L}\\p{N}_])" + body + "(?![\\p{L}\\p{N}_])", "giu");
-      for (const match of message.matchAll(pattern)) {
-        ranges.push([match.index, match.index + match[0].length]);
-      }
-    }
-    ranges.sort((a, b) => a[0] - b[0]);
-    const merged = [];
-    for (const range of ranges) {
-      const last = merged[merged.length - 1];
-      if (last && range[0] < last[1]) {
-        last[1] = Math.max(last[1], range[1]);
-      } else {
-        merged.push(range.slice());
-      }
-    }
-    return merged;
-  }
-
-  function renderMessage(message, ranges) {
-    messagePanel.replaceChildren();
-    let position = 0;
-    for (const [start, end] of ranges) {
-      if (start > position) messagePanel.append(message.slice(position, start));
-      const mark = document.createElement("mark");
-      mark.textContent = message.slice(start, end);
-      messagePanel.append(mark);
-      position = end;
-    }
-    if (position < message.length) messagePanel.append(message.slice(position));
-  }
-
   function showResult(message, result) {
     const template = document.getElementById("result-" + result.label) || document.getElementById("result-unsure");
     const label = template.id.replace("result-", "");
@@ -169,10 +124,9 @@
     resultView.className = "view result--" + THEMES[label];
     verdictCard.replaceChildren(content);
 
-    const ranges = findHighlights(message, result.reasons);
-    renderMessage(message, ranges);
-    highlightNote.hidden = ranges.length === 0;
-    highlightNote.textContent = hamWithSigns ? template.dataset.signsNote : highlightNote.dataset.default;
+    // Plain text, no highlights: highlighted words would suggest they're why a message is a scam,
+    // which isn't how the model works (decision 042).
+    messagePanel.textContent = message;
 
     reasonsHeading.textContent = hamWithSigns ? template.dataset.signsHeading : reasonsHeading.dataset.default;
     reasonsList.replaceChildren();

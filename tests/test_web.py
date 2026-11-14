@@ -187,7 +187,6 @@ def test_legitimate_icon_is_a_speech_bubble_not_a_tick(parsed):
 @pytest.mark.parametrize("attribute, text", [
     ("data-signs-heading", "Signs to be careful of"),
     ("data-signs-summary", "We found no strong scam or spam signs, but some words are worth a second look."),
-    ("data-signs-note", "Highlighted: words that are sometimes found in scams or spam."),
 ])
 def test_legitimate_with_warning_signs_wording(parsed, attribute, text):
     assert parsed.find("template", id="result-ham")[0][attribute] == text
@@ -198,6 +197,27 @@ def test_unsure_extra_wording(parsed):
     assert unsure["data-no-reasons"] == "There were no clear signs either way."
     assert unsure["data-not-recognised"] == "We didn't recognise enough of this message to rate it."
     assert unsure["data-warning-signs"] == "We found warning signs, so we can't rate this message as legitimate."
+
+
+def test_your_message_panel_stays_without_highlights(parsed, page):
+    # Decision 042: the message is shown as plain text, with no highlighting.
+    assert parsed.find("div", id="result-message")
+    assert "Your message" in page
+    assert not parsed.find(id="highlight-note")
+    assert "data-signs-note" not in page
+    assert "Highlighted:" not in page
+
+
+def test_script_shows_the_message_as_plain_text():
+    assert "messagePanel.textContent = message" in JS
+    for leftover in ("findHighlights", "createElement(\"mark\")", "highlightNote"):
+        assert leftover not in JS
+
+
+def test_stylesheet_has_no_highlight_colours_or_rule():
+    assert not re.search(r"--(?:scam|spam|legit|unsure)-mark", CSS)
+    assert "--r-mark" not in CSS
+    assert not any(selectors.strip() == "mark" for selectors, _ in css_rules())
 
 
 def test_script_shows_the_warning_signs_line_by_status():

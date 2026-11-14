@@ -57,8 +57,8 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 8 | Web UI | Done |
 | 9 | Deployment (Azure App Service) | Done |
 | 10 | Self-review and fixes | Done |
-| 11 | Tuning and evaluation | In progress |
-| 12 | Failure handling and hardening | Not started |
+| 11 | Tuning and evaluation | Done |
+| 12 | Failure handling and hardening | In progress |
 | 13 | User testing and final fixes | Not started |
 
 ---
@@ -458,7 +458,7 @@ sms-scam-detector/
   - **What the developer would actually notice:** a request for money, verification by text rather than email, or a prize without paying.
 
 ## Stage 11 – Tuning and evaluation
-**Status:** In progress (step 1)
+**Status:** Done
 **Goal:** choose the Unsure threshold; test on Irish scam examples from public warnings; measure against targets (≥95% scam-vs-safe recall, ≤5% false alarms). Above all, deal with the Stage 10 findings, especially the "Hi mum" scam rated 91% Looks legitimate (see decision 040).
 
 It runs in three steps, with a check-in between each:
@@ -539,7 +539,7 @@ It runs in three steps, with a check-in between each:
 **Done when (whole stage):**
 - [x] Fixes chosen, built and tested; both halves scored and recorded (307 tests pass)
 - [x] Plain-English explanation given and `docs/learning_log.md` summary written
-- [ ] Committed and redeployed (committed 14 Nov; waiting for the developer to redeploy)
+- [x] Committed and redeployed (committed 14 Nov in `8f4e8c3`; redeployed and checked live by the developer)
 **Open questions:** none for step 1.
 **Step 1 results – design half (27 messages, model v1, threshold 0.7, 14 Nov):**
 
@@ -574,7 +574,21 @@ It runs in three steps, with a check-in between each:
 **Carried over:** the Stage 10 self-review findings above (unconvincing reasons; the model can't recognise requests for money; the "Hi mum" scam at 91% Looks legitimate is **critical**); text the model barely understands can still get a confident Looks legitimate. In Stage 10, a short non-English test sentence came out at 84% because a couple of its words are recognised, so the "no recognised terms" rule (decision 032) doesn't catch it. The app is English-only and other languages don't need supporting; the open question is whether mostly-unrecognised text should show Unsure instead of a confident result, or simply be recorded as a limitation; parcel-fee scams with only a link (no phone number) came out as Unsure at 62% and 69% in Stage 8, though that's how most current parcel scams look; the 94.9% test score (decision 031); check probability calibration; try applying the threshold only to Legitimate results (decision 034); test the "Hi mum" scam and messages with few recognised words (decisions 032, 033); review 5-digit short codes and numbers glued to words (decision 030).
 
 ## Stage 12 – Failure handling and hardening
+**Status:** In progress (item 1 built, 14 Nov: 309 tests pass; screenshots at 1280px and 390px fine, with no sideways scrolling; waiting for commit and redeploy)
 **Goal:** the app behaves sensibly when the model fails or gives poor output; edge cases covered by tests.
+
+**Item 1 – Remove highlighting (decision 042):**
+- **"Your message":** stays, showing the message as plain text. The highlights and the "Highlighted: …" note go, because highlighted words suggest those words are *why* a message is a scam, which isn't how the model works (Stage 10 self-review: "delivery", "new").
+- **Files:** `app/web/templates/index.html` (remove the note and the ham template's `data-signs-note`), `app/web/static/js/check.js` (remove `findHighlights` and the marks; the message is inserted as plain text with `textContent`), `app/web/static/css/styles.css` (remove the `mark` and `.highlight-note` rules and the `--*-mark` tokens), `docs/ui-design.md` (remove the highlight component and the mark tokens), `tests/test_web.py`.
+- **Unchanged:** the API still returns each reason's `term`. It's no longer used by the page, but removing it would change the agreed API interface for no benefit.
+- **Tests:**
+  - the page still has the "Your message" panel but no highlight note or `data-signs-note`
+  - the script has no `findHighlights` or `mark` and still never uses `innerHTML`
+  - the stylesheet has no `--*-mark` tokens or `mark` rule
+  - the spec-token test still passes against the updated spec, and every other test still passes
+- **Manual check:** screenshots at 1280px and 390px, then the developer redeploys.
+
+**Later items:** the rest of Stage 12 (failure handling and edge cases, plus the optional "no plain numbers in reasons" tweak) is planned after item 1.
 
 ## Stage 13 – User testing and final fixes
 **Goal:** people unfamiliar with the app try the finished version; record where they hesitate or misread results; fix what they find (decision 038).

@@ -49,10 +49,10 @@ Put these in one CSS file (e.g. `app/web/static/css/styles.css`) as custom prope
   --focus: #a3402a;               /* focus ring: the accent is under 3:1 on the base */
 
   /* Results */
-  --scam-ink: #9f1d14;  --scam-fill: #c0392b;  --scam-mark: #f8cdc6;  --scam-mark-ink: #7a1a11;
-  --spam-ink: #8a4b08;  --spam-fill: #d68910;  --spam-mark: #fbe2b0;  --spam-mark-ink: #6b3a06;
-  --legit-ink: #2f4f7f; --legit-fill: #4a6fa5; --legit-mark: #d6e2f3; --legit-mark-ink: #1f3657;
-  --unsure-ink: #55468a;--unsure-fill: #7a6bb0;--unsure-mark: #e2dcf3;--unsure-mark-ink: #3d3266;
+  --scam-ink: #9f1d14;  --scam-fill: #c0392b;
+  --spam-ink: #8a4b08;  --spam-fill: #d68910;
+  --legit-ink: #2f4f7f; --legit-fill: #4a6fa5;
+  --unsure-ink: #55468a;--unsure-fill: #7a6bb0;
   --error: #9f1d14;
 
   /* Shadows – deep, so keys read as physical */
@@ -106,7 +106,6 @@ Tighter letter-spacing on large text, none on body text. **Mono is for the "prin
 | **Info panel / notice** | Sunken (`--inset-sm` or `--inset-md`), `--radius-box`, icon + text. |
 | **Confidence meter** | LED segment bar: sunken track (height 1.375rem, 4px padding, 0.5rem radius) with a fill of segments in the result's `-fill` colour (9px lit, 3px gap); percentage label above in `--mono`. `role="img"` with an `aria-label`. |
 | **Step tiles** | Sunken; step number large in `--mono` and `--link`, step name as a mono label, description in `--font`. |
-| **Highlight** | `<mark>` with the result's `-mark` background and `-mark-ink` text, 600 weight, small rounded padding. |
 | **Focus** | `:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }` |
 | **Icons** | Inline stroke SVGs (24px grid, stroke 2–2.2), `aria-hidden="true"` when decorative. No emoji. |
 
@@ -136,7 +135,7 @@ Below: **How it works** – three sunken tiles (STEP 1 Paste / STEP 2 Check / ST
 
 **Layout (desktop):** header with a "← Check another message" pill link; two columns (wrap on narrow screens):
 - **Left – verdict card (raised):** icon in a sunken circle; small uppercase "RESULT"; verdict in the result's ink colour; one-line summary; confidence meter; "What to do" list.
-- **Right:** "Your message" (sunken panel showing the message with highlighted words, plus a small note "Highlighted: the words that most influenced the result." when there are highlights); "Why we think this" – the reasons as sunken rows, each with a small dot in the result's fill colour.
+- **Right:** "Your message" (sunken panel showing the message as plain text, with no highlighting, decision 042); "Why we think this" – the reasons as sunken rows, each with a small dot in the result's fill colour.
 
 **Bottom row:** sunken reminder with an info icon: "This is an automated check and can be wrong. If a message claims to be from an organisation, contact them using a number or website you already know." + primary button **Check another message**.
 
@@ -150,8 +149,8 @@ Below: **How it works** – three sunken tiles (STEP 1 Paste / STEP 2 Check / ST
 | unsure | Unsure | Question mark in a circle | We can't tell confidently what this is, so treat it with caution. | Treat it with caution until you are sure who sent it. · Don't call the number in the message. · Contact the organisation using a number or website you already know. |
 
 - **Confidence label:** "Confidence N%" for rated results. For **Unsure**: "N%, too low to rate" (no "Closest match" line, decision 036). With no meter: "We didn't recognise enough of this message to rate it." when nothing was recognised, and "We found warning signs, so we can't rate this message as legitimate." when a warning sign ruled out Looks legitimate (status `warning_signs`, decision 041).
-- **Warning signs** appear first in the reasons, as ordinary rows; their matched words are highlighted like any other reason.
-- **Reasons and highlights** come from the explainer's output – render whatever it returns; don't hard-code them.
+- **Warning signs** appear first in the reasons, as ordinary rows.
+- **Reasons** come from the API's output – render whatever it returns; don't hard-code them. Words are never highlighted in the message: highlighted words would suggest they're why a message is a scam, which isn't how the model works (decision 042).
 
 ## 6. Motion
 

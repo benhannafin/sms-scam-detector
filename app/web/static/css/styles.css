@@ -26,10 +26,10 @@
   --focus: #a3402a;               /* focus ring: the accent is under 3:1 on the base */
 
   /* Results */
-  --scam-ink: #9f1d14;  --scam-fill: #c0392b;  --scam-mark: #f8cdc6;  --scam-mark-ink: #7a1a11;
-  --spam-ink: #8a4b08;  --spam-fill: #d68910;  --spam-mark: #fbe2b0;  --spam-mark-ink: #6b3a06;
-  --legit-ink: #2f4f7f; --legit-fill: #4a6fa5; --legit-mark: #d6e2f3; --legit-mark-ink: #1f3657;
-  --unsure-ink: #55468a;--unsure-fill: #7a6bb0;--unsure-mark: #e2dcf3;--unsure-mark-ink: #3d3266;
+  --scam-ink: #9f1d14;  --scam-fill: #c0392b;
+  --spam-ink: #8a4b08;  --spam-fill: #d68910;
+  --legit-ink: #2f4f7f; --legit-fill: #4a6fa5;
+  --unsure-ink: #55468a;--unsure-fill: #7a6bb0;
   --error: #9f1d14;
 
   /* Shadows – deep, so keys read as physical */
@@ -427,10 +427,10 @@ textarea[aria-invalid="true"] {
 
 /* ---------- Result ---------- */
 
-.result--scam   { --r-ink: var(--scam-ink);   --r-fill: var(--scam-fill);   --r-mark: var(--scam-mark);   --r-mark-ink: var(--scam-mark-ink); }
-.result--spam   { --r-ink: var(--spam-ink);   --r-fill: var(--spam-fill);   --r-mark: var(--spam-mark);   --r-mark-ink: var(--spam-mark-ink); }
-.result--legit  { --r-ink: var(--legit-ink);  --r-fill: var(--legit-fill);  --r-mark: var(--legit-mark);  --r-mark-ink: var(--legit-mark-ink); }
-.result--unsure { --r-ink: var(--unsure-ink); --r-fill: var(--unsure-fill); --r-mark: var(--unsure-mark); --r-mark-ink: var(--unsure-mark-ink); }
+.result--scam   { --r-ink: var(--scam-ink);   --r-fill: var(--scam-fill); }
+.result--spam   { --r-ink: var(--spam-ink);   --r-fill: var(--spam-fill); }
+.result--legit  { --r-ink: var(--legit-ink);  --r-fill: var(--legit-fill); }
+.result--unsure { --r-ink: var(--unsure-ink); --r-fill: var(--unsure-fill); }
 
 .verdict-icon {
   display: grid;
@@ -499,16 +499,6 @@ textarea[aria-invalid="true"] {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-
-mark {
-  padding: 0.05em 0.15em;
-  border-radius: 0.375rem;
-  background: var(--r-mark);
-  color: var(--r-mark-ink);
-  font-weight: 600;
-}
-
-.highlight-note { margin: 0.75rem 0 0; }
 
 .reasons { display: grid; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
 .reasons li {

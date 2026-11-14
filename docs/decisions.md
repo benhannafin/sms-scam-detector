@@ -49,6 +49,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 039 | Synth restyle: intense neumorphism, cool grey, keys | Accepted |
 | 040 | Stage 11 approach: reference set first, then rules alongside the model | Accepted |
 | 041 | Unknown sender, warning signs, clearer reasons, threshold kept | Accepted |
+| 042 | No highlighted words; "Your message" shown as plain text | Accepted |
 
 ---
 
@@ -395,3 +396,10 @@ An `origin` column marks each message, and results are reported separately for e
 - **Interfaces:** the check result and API gain a status value (034), and the architecture gains `app/signals` (040).
 - **Rules:** they only catch the phrasings they list. The held-out half tests whether they work beyond the design half.
 - **Report:** states the unknown-sender scope.
+
+## 042 – No highlighted words; "Your message" shown as plain text
+**Status:** Accepted (14 Nov 2026)
+**Context:** The result page highlighted the words behind each reason (033, 036). The developer's Stage 10 self-review showed those words are often unconvincing ("delivery", "new", "your"), because the model learned word statistics rather than meaning. Highlighting them suggests that those words are *why* a message is a scam, which misrepresents how the model works.
+**Decision:** Remove the highlights and the "Highlighted: …" note. Keep the "Your message" panel, showing the message as plain text: it confirms what was checked and gives context for the reasons. The result page has the result card (verdict, summary, confidence, What to do), Your message, and Why we think this. The API is unchanged and still returns each reason's `term`, although the page no longer uses it.
+**Alternatives considered:** Remove the whole "Your message" panel (loses the check that the right text was pasted, and the context for the reasons); keep the highlights (misleading); remove `term` from the API (an interface change for no benefit).
+**Consequences:** Updates the highlight parts of 033 and 036. The `--*-mark` colour tokens and the highlight component leave the spec and the stylesheet. The reasons, including the warning signs, are now the only explanation shown.
