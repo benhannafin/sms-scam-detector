@@ -30,7 +30,7 @@
 | --- | --- |
 | `handover.md` | This file – current state and next steps |
 | `plan.md` | Architecture summary, conventions, workflow, all stages with status and detail |
-| `docs/decisions.md` | Architecture decision record: 39 decisions with context, alternatives and consequences |
+| `docs/decisions.md` | Architecture decision record: 41 decisions with context, alternatives and consequences |
 | `CLAUDE.md` | Standing instructions for Claude Code (also useful for any AI) |
 | `docs/learning_log.md` | Developer's own summaries after each stage |
 | `docs/ui-design.md` | Approved UI design spec for Stage 8 |
@@ -47,6 +47,7 @@
 | `app/preprocessor` | Cleans text | Clean the text: raw text → cleaned text |
 | `app/classifier` | ML model + a mock with the same interface | Classify: cleaned text → label + class probabilities + recognised-term count + term contributions; Load model: version → model |
 | `app/explainer` | Reasons behind a result | Explain: cleaned text + prediction → up to 3 reasons (for Legitimate: signs to be careful of) |
+| `app/signals` | Hand-written warning signs (decision 041) | Find signs: cleaned text → list of signs |
 | `training/` | Offline training, evaluation, saving the model | Writes `models/` |
 
 Designed but **not built** (target design only): feedback API (`POST /api/feedback`), feedback service and store, scheduled human-approved retraining, Application Insights monitoring.
@@ -108,7 +109,7 @@ pytest
 
 ## 8. Next action
 
-Plan **Stage 11** (tuning and evaluation). Its main job is now the model weaknesses found in the Stage 10 self-review (see Stage 10's notes in `plan.md`): the reasons are unconvincing, and the model can't recognise requests for money, so the "Hi mum" scam gets 91% Looks legitimate (**critical**). Options to put to the developer:
+**Stage 11** is planned in three steps (decision 040): measure on a reference set, decide the fixes, then fix and re-measure. Step 1 is done: the reference set (53 messages) is frozen in `486baf5`, and the design half is scored (results in Stage 11's notes). Step 2 decisions are recorded in decision 041: unknown sender; three warning signs in `app/signals`; filler words left out of reasons; threshold 0.7. Step 3 is built and measured: `app/signals`, check service status `warning_signs`, filler words left out of reasons, and the new wording; 307 tests pass. Missed scams went from 3 of 14 to 0 on the design half, and 0 of 14 on the held-out half (scored once); no genuine text was flagged as spam or scam. Still to do: commit, redeploy, learning log, then mark Stage 11 *Done*. Known limitation: many results are Unsure. Its main job is the model weaknesses found in the Stage 10 self-review (see Stage 10's notes in `plan.md`): the reasons are unconvincing, and the model can't recognise requests for money, so the "Hi mum" scam gets 91% Looks legitimate (**critical**). Options to put to the developer:
 - **A:** a reference set of modern scams from public warnings, plus genuine texts, to measure where it fails (suggested first).
 - **B:** leave function words like "your" out of the reasons shown.
 - **C:** hand-written warning signs (asks for money, asks to verify) that can block a confident Looks legitimate. This is an architecture change.
