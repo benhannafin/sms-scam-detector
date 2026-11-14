@@ -107,7 +107,7 @@ pytest
 
 ## 8. Next action
 
-**Stage 10** is now a self-review (decision 038); user testing moved to a new Stage 13 at the end, with its design kept in Stage 13's notes in `plan.md`. First, a synth-style restyle the developer approved from a prototype (decision 039, spec updated in `docs/ui-design.md`). Part A (restyle) is built: 249 tests pass, and screenshots at 1280px and 390px match the approved prototype. Next: commit, the developer redeploys (README "Deploy" steps) and checks it live, then Claude writes the Part B self-review checklist (`docs/self-review.md`). Note for screenshots: browsers block port 5060 (SIP), and headless Edge's `--dump-dom` stopped returning output, so use headless Chrome with its own `--user-data-dir` for measurements. The live site is `https://sms-scam-detector-ie.azurewebsites.net`; it sleeps after about 20 minutes idle.
+**Stage 10** is now a self-review (decision 038); user testing moved to a new Stage 13 at the end, with its design kept in Stage 13's notes in `plan.md`. First, a synth-style restyle the developer approved from a prototype (decision 039, spec updated in `docs/ui-design.md`). Part A (restyle) is done, committed and live (developer checked it). Part B: the developer works through `docs/self-review.md` on phone and laptop, then brings back the problem log; Claude plans and makes the fixes for critical and serious problems. Note for screenshots: browsers block port 5060 (SIP), and headless Edge's `--dump-dom` stopped returning output, so use headless Chrome with its own `--user-data-dir` for measurements. The live site is `https://sms-scam-detector-ie.azurewebsites.net`; it sleeps after about 20 minutes idle.
 
 ## 9. Open questions and pending decisions
 
