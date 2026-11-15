@@ -58,7 +58,7 @@ Not built yet (designed for later): feedback API, feedback service and store, sc
 | 9 | Deployment (Azure App Service) | Done |
 | 10 | Self-review and fixes | Done |
 | 11 | Tuning and evaluation | Done |
-| 12 | Failure handling and hardening | In progress |
+| 12 | Failure handling and hardening | Done |
 | 13 | User testing and final fixes | Not started |
 
 ---
@@ -574,7 +574,7 @@ It runs in three steps, with a check-in between each:
 **Carried over:** the Stage 10 self-review findings above (unconvincing reasons; the model can't recognise requests for money; the "Hi mum" scam at 91% Looks legitimate is **critical**); text the model barely understands can still get a confident Looks legitimate. In Stage 10, a short non-English test sentence came out at 84% because a couple of its words are recognised, so the "no recognised terms" rule (decision 032) doesn't catch it. The app is English-only and other languages don't need supporting; the open question is whether mostly-unrecognised text should show Unsure instead of a confident result, or simply be recorded as a limitation; parcel-fee scams with only a link (no phone number) came out as Unsure at 62% and 69% in Stage 8, though that's how most current parcel scams look; the 94.9% test score (decision 031); check probability calibration; try applying the threshold only to Legitimate results (decision 034); test the "Hi mum" scam and messages with few recognised words (decisions 032, 033); review 5-digit short codes and numbers glued to words (decision 030).
 
 ## Stage 12 – Failure handling and hardening
-**Status:** In progress (item 1 built, 14 Nov: 309 tests pass; screenshots at 1280px and 390px fine, with no sideways scrolling; waiting for commit and redeploy)
+**Status:** Done (15 Nov: items 1–3 live; 335 tests pass; decisions 042, 043, 044)
 **Goal:** the app behaves sensibly when the model fails or gives poor output; edge cases covered by tests.
 
 **Item 1 – Remove highlighting (decision 042):**
@@ -664,7 +664,7 @@ It runs in three steps, with a check-in between each:
 - **Tests:** 335 pass (21 new in `tests/test_hardening.py`).
 - **Security policy:** headless Chrome loaded the real page with the new policy and logged no violations; the fonts, stylesheet and script all loaded. All four headers are present, and `/health` returns `{"status": "ok"}`.
 - **Pinned:** Flask 3.1.3, Flask-Limiter 4.1.1, joblib 1.6.0, Gunicorn 26.2.0, scikit-learn 1.9.1.
-- **Still to do by the developer:** redeploy, then check a result live and confirm `/health` answers.
+- **Live (15 Nov):** redeployed (the first attempt failed because it was run from the home folder, not the project folder). `/health` returns `{"status": "ok"}`, the security headers are present, the smoke test passes, and the developer checked a result live.
 
 **Then:** Stage 12 is done after item 3, and Stage 13 is user testing.
 
