@@ -30,7 +30,7 @@
 | --- | --- |
 | `handover.md` | This file – current state and next steps |
 | `plan.md` | Architecture summary, conventions, workflow, all stages with status and detail |
-| `docs/decisions.md` | Architecture decision record: 42 decisions with context, alternatives and consequences |
+| `docs/decisions.md` | Architecture decision record: 43 decisions with context, alternatives and consequences |
 | `CLAUDE.md` | Standing instructions for Claude Code (also useful for any AI) |
 | `docs/learning_log.md` | Developer's own summaries after each stage |
 | `docs/ui-design.md` | Approved UI design spec for Stage 8 |
@@ -46,8 +46,8 @@
 | `app/check_service` | Runs a check, applies the Unsure rule | Check a message: text → check result |
 | `app/preprocessor` | Cleans text | Clean the text: raw text → cleaned text |
 | `app/classifier` | ML model + a mock with the same interface | Classify: cleaned text → label + class probabilities + recognised-term count + term contributions; Load model: version → model |
-| `app/explainer` | Reasons behind a result | Explain: cleaned text + prediction → up to 3 reasons (for Legitimate: signs to be careful of) |
-| `app/signals` | Hand-written warning signs (decision 041) | Find signs: cleaned text → list of signs |
+| `app/explainer` | Reasons behind a result | Explain: cleaned text + prediction → up to 3 reasons, each a warning sign with why it matters, or a fallback (decision 043) |
+| `app/signals` | Hand-written warning signs (decisions 041, 043) | Find signs: cleaned text → list of signs; 3 of 11 can change a result |
 | `training/` | Offline training, evaluation, saving the model | Writes `models/` |
 
 Designed but **not built** (target design only): feedback API (`POST /api/feedback`), feedback service and store, scheduled human-approved retraining, Application Insights monitoring.
@@ -105,24 +105,22 @@ pytest
 | 9 | Deployment | Done (live at `https://sms-scam-detector-ie.azurewebsites.net`, free F1 in Belgium Central, all live checks passed, pushed) |
 | 10 | Self-review and fixes | Done (synth restyle live, decision 039; self-review found no usability problems; model findings carried to Stage 11) |
 | 11 | Tuning and evaluation | Done (reference set; warning signs in `app/signals`; 0 missed scams on both halves; decisions 040, 041; live) |
-| 12 | Failure handling and hardening | **In progress – item 1 (remove highlights, decision 042) built; commit and redeploy next** |
+| 12 | Failure handling and hardening | **In progress – item 1 (no highlights, 042) committed; item 2 (warning-sign reasons, 043) built** |
 | 13 | User testing and final fixes (moved last, decision 038) | Not started |
 
 ## 8. Next action
 
-**Stage 11** is planned in three steps (decision 040): measure on a reference set, decide the fixes, then fix and re-measure. Step 1 is done: the reference set (53 messages) is frozen in `486baf5`, and the design half is scored (results in Stage 11's notes). Step 2 decisions are recorded in decision 041: unknown sender; three warning signs in `app/signals`; filler words left out of reasons; threshold 0.7. Stage 11 is done and live (`8f4e8c3`): warning signs fixed the "Hi mum" problem, with 0 missed scams on both halves of the reference set. Known limitation: many results are Unsure. **Stage 12** has started: item 1 removes the highlighted words but keeps "Your message" as plain text (decision 042). It's built and tested (309 pass), and waiting for commit and redeploy. The rest of Stage 12 (failure handling, edge cases, an optional "no plain numbers in reasons" tweak) gets planned after it. Its main job is the model weaknesses found in the Stage 10 self-review (see Stage 10's notes in `plan.md`): the reasons are unconvincing, and the model can't recognise requests for money, so the "Hi mum" scam gets 91% Looks legitimate (**critical**). Options to put to the developer:
-- **A:** a reference set of modern scams from public warnings, plus genuine texts, to measure where it fails (suggested first).
-- **B:** leave function words like "your" out of the reasons shown.
-- **C:** hand-written warning signs (asks for money, asks to verify) that can block a confident Looks legitimate. This is an architecture change.
-- **D:** more training data, which goes beyond decisions 001 and 003.
+**Stage 12** (failure handling and hardening) is in progress.
+- **Item 1, done:** "Your message" is plain text with no highlights (decision 042, committed `aff27fc`). Check with the developer that it was redeployed.
+- **Item 2, built:** reasons are named warning signs with a "why" (11 signs in `app/signals`, decision 043) instead of "Uses the word…"; 314 tests pass, and reference-set outcomes are identical to Stage 11. Next: commit, redeploy, then plan the rest of Stage 12 (failure handling and edge cases).
+- **Stage 11 summary:** a reference set of 53 messages, plus warning signs, fixed the "Hi mum" problem (0 missed scams on both halves, decisions 040, 041). Known limitation: many results are Unsure.
+- **User testing:** Stage 13.
 
-Also carried over: the Unsure threshold, calibration, mostly-unrecognised text, link-only parcel scams, short codes and the 94.9% score. User testing is Stage 13. Note for screenshots: browsers block port 5060 (SIP), and headless Edge's `--dump-dom` stopped returning output, so use headless Chrome with its own `--user-data-dir` for measurements. The live site is `https://sms-scam-detector-ie.azurewebsites.net`; it sleeps after about 20 minutes idle.
+Note for screenshots: browsers block port 5060 (SIP), and headless Edge's `--dump-dom` stopped returning output, so use headless Chrome with its own `--user-data-dir` for measurements. The live site is `https://sms-scam-detector-ie.azurewebsites.net`; it sleeps after about 20 minutes idle.
 
 ## 9. Open questions and pending decisions
 
-- **Phone numbers glued to words** – 24 cases such as `call09050000337` aren't matched by `phonetoken`, all in spam or smishing. Left as they are for now; can be reviewed in Stage 11.
-- **"Hi mum" scam rated Legitimate** – a made-up "Hi mum, my phone is broken, this is my new number, can you send me money" text came out as ham at 91%. This is a common real scam, so include it in the Stage 11 Irish check.
-- **95% target** – the test score is 94.9% scam-vs-safe recall, just under the target. Handle it in Stage 11 (decision 031), not by retraining for this test set.
+- **Known limitations, recorded in decision 041:** many results are Unsure (most genuine texts in the reference set); mostly-unrecognised text; link-only parcel scams; short codes and numbers glued to words; calibration; the 94.9% test score, just under the 95% target.
 - **"Proposed" entries in `docs/decisions.md`** (017, 018, 024) – suggested details the developer hasn't confirmed: Azure Blob/SQL storage, Application Insights, reference-set check after retraining.
 - **Decision 028 (Open)** – user feedback labels may be unreliable because users often don't know the truth. Suggested: ask "How do you know?" and retrain mainly on verified public-warning examples.
 - **Optional later experiment** – compare against a fine-tuned DistilBERT model.
