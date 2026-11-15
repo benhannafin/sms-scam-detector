@@ -30,7 +30,7 @@
 | --- | --- |
 | `handover.md` | This file – current state and next steps |
 | `plan.md` | Architecture summary, conventions, workflow, all stages with status and detail |
-| `docs/decisions.md` | Architecture decision record: 43 decisions with context, alternatives and consequences |
+| `docs/decisions.md` | Architecture decision record: 44 decisions with context, alternatives and consequences |
 | `CLAUDE.md` | Standing instructions for Claude Code (also useful for any AI) |
 | `docs/learning_log.md` | Developer's own summaries after each stage |
 | `docs/ui-design.md` | Approved UI design spec for Stage 8 |
@@ -112,7 +112,8 @@ pytest
 
 **Stage 12** (failure handling and hardening) is in progress.
 - **Item 1, done:** "Your message" is plain text with no highlights (decision 042, committed `aff27fc`). Check with the developer that it was redeployed.
-- **Item 2, built:** reasons are named warning signs with a "why" (11 signs in `app/signals`, decision 043) instead of "Uses the word…"; 314 tests pass, and reference-set outcomes are identical to Stage 11. Next: commit, redeploy, then plan the rest of Stage 12 (failure handling and edge cases).
+- **Item 2, done:** reasons are named warning signs with a "why" (11 signs in `app/signals`, decision 043, committed `8a279e1`); reference-set outcomes are identical to Stage 11. Check it was redeployed.
+- **Item 3, built:** cold-start message, pinned versions, security headers, edge-case tests and `GET /health` (decision 044); 335 tests pass, and no security-policy violations in Chrome. Next: commit, the developer redeploys and checks a result live plus `/health`, then mark Stage 12 *Done* (learning log) and plan Stage 13. Note: the scratch preview pages inject inline scripts, which the new security policy now blocks, so screenshots of results need another approach.
 - **Stage 11 summary:** a reference set of 53 messages, plus warning signs, fixed the "Hi mum" problem (0 missed scams on both halves, decisions 040, 041). Known limitation: many results are Unsure.
 - **User testing:** Stage 13.
 
