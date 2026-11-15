@@ -2,7 +2,7 @@
 
 **Read this first.** This file lets any AI assistant (or person) pick up the project with no prior context. It's updated at the end of every working session. For full detail, it points to the other files in this repo.
 
-**Last updated:** 14 Nov 2026 · **Current stage:** 11 – Tuning and evaluation (planning)
+**Last updated:** 15 Nov 2026 · **Current stage:** 13 – User testing and final fixes (planning)
 
 ---
 
@@ -105,17 +105,16 @@ pytest
 | 9 | Deployment | Done (live at `https://sms-scam-detector-ie.azurewebsites.net`, free F1 in Belgium Central, all live checks passed, pushed) |
 | 10 | Self-review and fixes | Done (synth restyle live, decision 039; self-review found no usability problems; model findings carried to Stage 11) |
 | 11 | Tuning and evaluation | Done (reference set; warning signs in `app/signals`; 0 missed scams on both halves; decisions 040, 041; live) |
-| 12 | Failure handling and hardening | **In progress – item 1 (no highlights, 042) committed; item 2 (warning-sign reasons, 043) built** |
-| 13 | User testing and final fixes (moved last, decision 038) | Not started |
+| 12 | Failure handling and hardening | Done (no highlights 042; warning-sign reasons 043; cold start, pins, security headers, `/health` 044; 335 tests; live) |
+| 13 | User testing and final fixes (moved last, decision 038) | **Planning** |
 
 ## 8. Next action
 
-**Stage 12** (failure handling and hardening) is in progress.
-- **Item 1, done:** "Your message" is plain text with no highlights (decision 042, committed `aff27fc`). Check with the developer that it was redeployed.
-- **Item 2, done:** reasons are named warning signs with a "why" (11 signs in `app/signals`, decision 043, committed `8a279e1`); reference-set outcomes are identical to Stage 11. Check it was redeployed.
-- **Item 3, built:** cold-start message, pinned versions, security headers, edge-case tests and `GET /health` (decision 044); 335 tests pass, and no security-policy violations in Chrome. Next: commit, the developer redeploys and checks a result live plus `/health`, then mark Stage 12 *Done* (learning log) and plan Stage 13. Note: the scratch preview pages inject inline scripts, which the new security policy now blocks, so screenshots of results need another approach.
+Plan **Stage 13** (user testing and final fixes), the last stage. The draft design is in Stage 13's notes in `plan.md` (5 people, think-aloud, 6 made-up messages including the "Hi mum" scam, notes sheet plus the System Usability Scale, consent, severity ratings). Confirm it with the developer, update it for the changes since (warning-sign reasons, no highlights, unknown-sender wording), then draft the materials in `docs/usability/`. The developer should check with the lecturer about consent and ethics before booking anyone.
+- **Stage 12, done and live:** no highlights (042), warning-sign reasons (043), cold start, pinned versions, security headers and `/health` (044); 335 tests.
 - **Stage 11 summary:** a reference set of 53 messages, plus warning signs, fixed the "Hi mum" problem (0 missed scams on both halves, decisions 040, 041). Known limitation: many results are Unsure.
-- **User testing:** Stage 13.
+- **Deploying:** always run the commands from the project folder (a run from the home folder failed on 15 Nov).
+- **Screenshots:** the scratch preview pages inject inline scripts, which the security policy now blocks, so result screenshots need another approach.
 
 Note for screenshots: browsers block port 5060 (SIP), and headless Edge's `--dump-dom` stopped returning output, so use headless Chrome with its own `--user-data-dir` for measurements. The live site is `https://sms-scam-detector-ie.azurewebsites.net`; it sleeps after about 20 minutes idle.
 
@@ -132,6 +131,8 @@ Newest first. One entry per session: what was done, what was decided, what's nex
 
 | Date | Summary |
 | --- | --- |
+| 15 Nov 2026 | Stage 12 done and live: highlights removed (042); reasons are now 11 named warning signs with a "why" (043); cold-start message, pinned versions, security headers, `/health` and edge-case tests (044). 335 tests pass. Next: plan Stage 13 (user testing). |
+| 14 Nov 2026 | Stage 11 done: reference set of 53 messages (8 real Irish scam texts); unknown-sender assumption and three warning signs in `app/signals` fixed the "Hi mum" problem, with 0 missed scams on both halves (decisions 040, 041). |
 | 14 Nov 2026 | Stage 10 done: UI restyled to an intense, synth-inspired neumorphic look after the developer approved a prototype (decision 039), and redeployed. Stage order changed: self-review now, user testing moved to a new Stage 13 (decision 038). The developer's self-review found no usability problems, but the model's reasons are weak and it misses requests for money ("Hi mum" scam at 91% legitimate). Next: plan Stage 11 around that. |
 | 13 Nov 2026 | Stage 9 done: deployed to Azure App Service at `sms-scam-detector-ie.azurewebsites.net` (`sms-scam-detector` was taken). Azure for Students only allowed five regions and France Central had no free quota, so it runs on free F1 in Belgium Central (decision 037). Live smoke test passed, including the rate limit, and the log stream showed no message text. Next: plan Stage 10. |
 | 7 Nov 2026 | Stage 8 done: web UI built from `docs/ui-design.md` (decision 036, with clarifications where the spec didn't fit the API). Screenshots of 10 states at 1280px and 390px matched the spec with no sideways scrolling; developer's hand checks all good. Link-only parcel scams came out Unsure – added to Stage 11. Next: plan Stage 9. |
