@@ -1,5 +1,5 @@
-"""The Flask app factory (decisions 035, 037)."""
-from flask import Flask, request
+"""The Flask app factory (decisions 035, 037, 044)."""
+from flask import Flask, jsonify, request
 from flask_limiter import Limiter
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -10,6 +10,19 @@ from app.web import web
 
 MODEL_VERSION = "v1"
 MAX_REQUEST_BYTES = 16 * 1024
+
+# Standard browser protections on every response (decision 044). The policy allows only our own
+# scripts and styles, plus Google Fonts; the page has no inline scripts or styles.
+SECURITY_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; "
+        "font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; "
+        "base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    ),
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "X-Frame-Options": "DENY",
+}
 
 
 def strip_port(address):
@@ -46,6 +59,18 @@ def create_app(classifier=None):
     limiter.limit(RATE_LIMIT)(api)
     app.register_blueprint(api)
     app.register_blueprint(web)
+
+    @app.get("/health")
+    def health():
+        # Not rate limited, and no message data: for monitors, and for waking the site.
+        if app.extensions["check_service"] is None:
+            return jsonify(status="model_unavailable"), 503
+        return jsonify(status="ok")
+
+    @app.after_request
+    def add_security_headers(response):
+        response.headers.update(SECURITY_HEADERS)
+        return response
 
     @app.errorhandler(413)
     def request_too_large(error):

@@ -98,7 +98,7 @@ az webapp log tail --name $app --resource-group $rg
 az webapp log config --name $app --resource-group $rg --docker-container-logging off
 ```
 
-The free plan sleeps after about 20 minutes idle, so the first visit afterwards is slow. Open the site a minute before a demo.
+The free plan sleeps after about 20 minutes idle, so the first visit afterwards is slow. Before a demo, wake it by opening https://sms-scam-detector-ie.azurewebsites.net/health a minute early: it shows `{"status": "ok"}` once the model has loaded, or `{"status": "model_unavailable"}` if something went wrong.
 
 ## Project structure
 

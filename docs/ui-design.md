@@ -125,7 +125,7 @@ Below: **How it works** – three sunken tiles (STEP 1 Paste / STEP 2 Check / ST
 
 **States:**
 - **Empty** – as above.
-- **Checking** – the button is replaced by a sunken status bar: "Checking your message…" with a coral progress bar (`role="status"`). Text box keeps the message.
+- **Checking** – the button is replaced by a sunken status bar: "Checking your message…" with a coral progress bar (`role="status"`). Text box keeps the message. After 5 seconds the text becomes "Waking up the checker, this can take up to a minute…" (the free plan sleeps); after 90 seconds the check is cancelled and the generic error shows (decision 044).
 - **Problem with input** – inline error under the text box (`role="alert"`, error colour, alert icon), the text box gets a 2px error ring, the user's text is kept and focus returns to the box. Messages:
   - Empty: "**The box is empty.** Paste the text message you want to check, then press Check message."
   - Too long: "**That message is too long.** Paste a message of up to MAX characters."

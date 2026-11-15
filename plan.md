@@ -630,7 +630,43 @@ It runs in three steps, with a check-in between each:
 - **Wording:** reasons now read, for example, "Contains a link: scam texts often lead to fake websites that look real." No "Uses the word…" remains, so the "19" and "due" oddities are gone too, and the optional "no plain numbers in reasons" tweak isn't needed any more.
 - **Side effects:** a genuine verification code now shows "Mentions your account or security…" under Unsure, and a casual "running late" text shows no reasons ("There were no clear signs either way.").
 
-**Later items:** the rest of Stage 12 (failure handling and edge cases) is planned after item 2.
+**Item 3 – Failure handling and hardening (decision 044; plan awaiting approval):**
+1. **Slow first check (cold start):**
+   - after 5 seconds of checking, the status bar's text changes to "Waking up the checker, this can take up to a minute…" (still `role="status"`, so screen readers hear it)
+   - after 90 seconds, the request is cancelled and the generic error shows ("We couldn't check that message. Please try again.")
+   - the wording lives in the template (a `data-slow` attribute); the script uses a timer and `AbortController` to cancel
+2. **Pinned versions:** `requirements.txt` pins the exact versions that pass the tests: Flask, Flask-Limiter, joblib and Gunicorn (scikit-learn is already pinned). Their own dependencies aren't pinned, which is fine for a prototype; it's noted in the decision.
+3. **Security headers on every response,** added in `create_app`:
+   - `Content-Security-Policy`: `default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`
+   - `X-Content-Type-Options: nosniff`
+   - `Referrer-Policy: no-referrer`
+   - `X-Frame-Options: DENY`
+
+   The page already has no inline scripts or styles; the meter's width is set from the script, which this policy allows.
+4. **Edge-case tests:**
+   - emoji count the same in the counter and the API (1,000 accepted, 1,001 refused)
+   - a 1,000-character word with no spaces is accepted, and the message panel wraps it (`overflow-wrap: anywhere`), with a 390px screenshot check
+   - only a link, and only numbers, give a valid result
+   - pasted HTML or `<script>` gives a normal result, and the page only inserts text
+   - Windows line breaks (`\r\n`) are handled
+5. **Health check:** `GET /health` returns 200 `{"status": "ok"}`, or 503 `{"status": "model_unavailable"}` if the model didn't load. It's not rate limited, carries no message data, and the README mentions it for waking the site before a demo.
+
+- **Files:** `app/__init__.py` (headers, `/health`), `app/web/templates/index.html` (`data-slow`), `app/web/static/js/check.js` (timer, cancel), `requirements.txt`, `README.md`, `tests/test_hardening.py` (new), `docs/ui-design.md` (checking state), decision 044.
+- **Tests:**
+  - every response has the four headers, and the CSP allows exactly the sources above
+  - the template has the slow-check wording; the script has the 5-second and 90-second timers and cancels the request
+  - `/health` returns ok, and 503 when the model fails to load, and isn't rate limited
+  - `requirements.txt` has exact pins (`==`) for all five packages
+  - the edge cases above; every earlier test still passes; the reference-set results don't change
+- **Manual check:** the live site still loads its fonts, scripts and styles with the new security policy (nothing blocked in the browser console), and `/health` answers.
+
+**Item 3 results (15 Nov):**
+- **Tests:** 335 pass (21 new in `tests/test_hardening.py`).
+- **Security policy:** headless Chrome loaded the real page with the new policy and logged no violations; the fonts, stylesheet and script all loaded. All four headers are present, and `/health` returns `{"status": "ok"}`.
+- **Pinned:** Flask 3.1.3, Flask-Limiter 4.1.1, joblib 1.6.0, Gunicorn 26.2.0, scikit-learn 1.9.1.
+- **Still to do by the developer:** redeploy, then check a result live and confirm `/health` answers.
+
+**Then:** Stage 12 is done after item 3, and Stage 13 is user testing.
 
 ## Stage 13 – User testing and final fixes
 **Goal:** people unfamiliar with the app try the finished version; record where they hesitate or misread results; fix what they find (decision 038).

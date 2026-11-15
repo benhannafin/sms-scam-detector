@@ -51,6 +51,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 041 | Unknown sender, warning signs, clearer reasons, threshold kept | Accepted |
 | 042 | No highlighted words; "Your message" shown as plain text | Accepted |
 | 043 | Reasons are named warning signs with a "why", not model words | Accepted |
+| 044 | Hardening: cold-start message, pinned versions, security headers, health check | Accepted |
 
 ---
 
@@ -422,3 +423,25 @@ An `origin` column marks each message, and results are reported separately for e
 - **What reasons mean now:** they explain the warning signs found in a message, not the model's internal arithmetic. The fallback says plainly when only the model's learned wording made the call. The report should describe the reasons this way.
 - **Signs can appear on genuine texts:** for example "Mentions your account or security" on a verification code. On Looks legitimate results they show as "Signs to be careful of", which suits the unknown-sender assumption (041).
 - **Updated decisions:** this replaces 033's way of choosing reasons. The minimum strength and filler-word list (033, 041) are no longer needed.
+
+## 044 – Hardening: cold-start message, pinned versions, security headers, health check
+**Status:** Accepted (15 Nov 2026)
+**Context:** Stage 12's remaining gaps, checked against the code:
+- **Slow first check:** the free plan sleeps, so the first check can take up to a minute, with no explanation (020).
+- **Loose versions:** `requirements.txt` allows any newer Flask, Flask-Limiter, joblib or Gunicorn, so a future deploy could break the app.
+- **No security headers:** the pages send none of the standard browser protections.
+- **Untested edge inputs:** odd inputs aren't tested end to end.
+- **No health check:** there's no simple way to see whether the model loaded on Azure.
+**Decision:**
+- **Cold start:** after 5 seconds, the checking bar says "Waking up the checker, this can take up to a minute…". After 90 seconds, the request is cancelled and the generic error shows.
+- **Versions:** exact pins for all five packages that the website installs.
+- **Security headers:** Content-Security-Policy (our own scripts only, plus Google Fonts), `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` and `X-Frame-Options: DENY`, on every response.
+- **Edge-case tests:** emoji, a very long word, only a link, only numbers, pasted HTML or script, and Windows line breaks.
+- **Health check:** `GET /health` returns 200 `{"status": "ok"}`, or 503 `{"status": "model_unavailable"}`. It's not rate limited and carries no message data.
+**Alternatives considered:**
+- **No cold-start message:** people may think the site is broken.
+- **A shorter timeout:** a real cold start could be cancelled.
+- **Pinning every dependency, including indirect ones:** more work than a prototype needs.
+- **Strict-Transport-Security:** Azure already enforces HTTPS (037), and the header can make local testing awkward.
+- **A health check that's always 200:** monitors couldn't tell when the model failed.
+**Consequences:** No change to how messages are classified, so the reference-set results stay the same. Google Fonts must stay allowed in the policy, or the page falls back to system fonts. Indirect dependencies can still change between deploys.

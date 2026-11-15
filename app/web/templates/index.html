@@ -40,8 +40,9 @@
         </div>
 
         <button type="submit" id="check-button" class="button-primary">Check message</button>
-        <div id="checking" class="status-bar" role="status" hidden>
-          <span>Checking your message…</span>
+        <div id="checking" class="status-bar" role="status" hidden
+             data-slow="Waking up the checker, this can take up to a minute…">
+          <span id="checking-text">Checking your message…</span>
           <span class="progress" aria-hidden="true"><span class="progress-fill"></span></span>
         </div>
       </form>

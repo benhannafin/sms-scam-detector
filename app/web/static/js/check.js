@@ -19,6 +19,11 @@
   const navHow = document.getElementById("nav-how");
   const navBack = document.getElementById("nav-back");
 
+  const checkingText = document.getElementById("checking-text");
+  const CHECKING_TEXT = checkingText.textContent;
+  const SLOW_AFTER_MS = 5000;
+  const GIVE_UP_AFTER_MS = 90000;
+
   const MAX = Number(counter.dataset.max);
   const THEMES = { smishing: "scam", spam: "spam", ham: "legit", unsure: "unsure" };
 
@@ -52,6 +57,7 @@
   function setChecking(isChecking) {
     checkButton.hidden = isChecking;
     checking.hidden = !isChecking;
+    checkingText.textContent = CHECKING_TEXT;
     textarea.setAttribute("aria-busy", String(isChecking));
   }
 
@@ -165,11 +171,17 @@
   async function check(message) {
     clearError();
     setChecking(true);
+    // The free plan sleeps, so the first check can be slow: explain after a few seconds,
+    // and give up rather than wait forever (decision 044).
+    const controller = new AbortController();
+    const slowTimer = setTimeout(() => { checkingText.textContent = checking.dataset.slow; }, SLOW_AFTER_MS);
+    const giveUpTimer = setTimeout(() => controller.abort(), GIVE_UP_AFTER_MS);
     try {
       const response = await fetch(form.dataset.apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: message }),
+        signal: controller.signal,
       });
       let body = null;
       try {
@@ -184,8 +196,12 @@
         showError(body && body.error ? body.error.code : "generic");
       }
     } catch (error) {
+      // Includes the 90-second give-up, which cancels the request.
       setChecking(false);
       showError("generic");
+    } finally {
+      clearTimeout(slowTimer);
+      clearTimeout(giveUpTimer);
     }
   }
 
