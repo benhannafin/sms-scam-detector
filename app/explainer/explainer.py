@@ -1,32 +1,13 @@
-"""Turn a prediction into reasons people can read (rules in decision 033)."""
+"""Turn a prediction into reasons people can read (decision 043, replacing 033's word reasons).
+
+Reasons are the warning signs found in the message, each with why it matters. They no longer
+come from the model's word weights, which were faithful but meaningless to a reader.
+"""
 from dataclasses import dataclass
-import re
+
+from app.signals import find_signs
 
 MAX_REASONS = 3
-# Weaker terms are mostly filler words like "the"; chosen by eye, to revisit in Stage 10.
-MIN_STRENGTH = 0.15
-
-TOKEN_TEXT = {
-    "urltoken": "Contains a link",
-    "moneytoken": "Mentions an amount of money",
-    "phonetoken": "Contains a phone number",
-}
-TOKEN_NAME = {
-    "urltoken": "[link]",
-    "moneytoken": "[amount of money]",
-    "phonetoken": "[phone number]",
-}
-
-# Terms made only of these are left out of the reasons shown: true to the model, but meaningless
-# to a reader (decision 041). The model's decisions don't change.
-FILLER_WORDS = {
-    "your", "you", "to", "has", "have", "for", "been", "the", "a", "an", "is", "it", "me", "my",
-    "and", "of", "in", "on", "at", "this", "that", "please", "be", "we", "are", "was", "will",
-    "can", "do", "if", "or", "with", "from", "by", "so", "as",
-}
-
-# Matches how the model splits text into words, so terms can be checked against the message.
-WORD = re.compile(r"(?u)\b\w\w+\b")
 
 
 @dataclass(frozen=True)
@@ -35,47 +16,20 @@ class Reason:
     text: str
 
 
-NO_SIGNS = Reason(term=None, text="No common scam signs found")
+NO_SIGNS = Reason(term=None, text="No common warning signs found")
+# When no sign is found, say plainly that the model's learned wording made the call.
+FALLBACKS = {
+    "smishing": Reason(term=None, text="The wording is similar to scam texts the model learned from."),
+    "spam": Reason(term=None, text="The wording is similar to marketing texts the model learned from."),
+    "ham": NO_SIGNS,
+}
 
 
 def explain(cleaned_text, prediction):
-    """Return up to 3 reasons for a prediction, biggest first."""
-    if prediction.label == "ham":
-        # Only terms that pointed away from ham: never cite evidence that a message is genuine.
-        scores = {term: -c["ham"] for term, c in prediction.contributions.items()}
-    else:
-        scores = {term: c[prediction.label] for term, c in prediction.contributions.items()}
-
-    in_message = _terms_in(cleaned_text)
-    candidates = sorted(
-        (
-            term for term, score in scores.items()
-            if score >= MIN_STRENGTH and term in in_message and not set(term.split()) <= FILLER_WORDS
-        ),
-        key=lambda term: (-scores[term], term),
-    )
-
-    chosen = []
-    for term in candidates:
-        if len(chosen) == MAX_REASONS:
-            break
-        if not any(set(term.split()) & set(other.split()) for other in chosen):
-            chosen.append(term)
-
-    if not chosen and prediction.label == "ham":
-        return [NO_SIGNS]
-    return [Reason(term=term, text=_describe(term)) for term in chosen]
-
-
-def _terms_in(cleaned_text):
-    words = WORD.findall(cleaned_text)
-    return set(words) | {f"{a} {b}" for a, b in zip(words, words[1:])}
-
-
-def _describe(term):
-    if term in TOKEN_TEXT:
-        return TOKEN_TEXT[term]
-    words = term.split()
-    if len(words) == 1:
-        return f'Uses the word "{term}"'
-    return 'Uses the phrase "{}"'.format(" ".join(TOKEN_NAME.get(word, word) for word in words))
+    """Return up to 3 reasons for a prediction: warning signs first, or a fallback."""
+    signs = find_signs(cleaned_text)
+    if prediction.label == "spam":
+        # The opt-out wording is the clearest marketing clue, so it leads.
+        signs = sorted(signs, key=lambda sign: sign.name != "opt_out")
+    reasons = [Reason(term=sign.term, text=sign.text) for sign in signs][:MAX_REASONS]
+    return reasons or [FALLBACKS[prediction.label]]

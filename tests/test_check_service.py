@@ -60,7 +60,13 @@ def test_unsure_keeps_the_other_reasons():
     contributions = {"urltoken": {"ham": -0.6, "spam": 0.1, "smishing": 0.5}}
     result = check_with(make_prediction("smishing", 0.55, contributions=contributions), "visit www.prize.com")
     assert result.label == "unsure"
-    assert result.reasons == [Reason(term="urltoken", text="Contains a link")]
+    assert result.reasons == [LINK]
+
+
+def test_unsure_with_no_signs_shows_no_fallback():
+    # "The wording is similar to scam texts…" isn't a sign, so it isn't shown next to Unsure.
+    result = check_with(make_prediction("smishing", 0.55), "see you at the cinema")
+    assert (result.label, result.reasons) == ("unsure", [])
 
 
 def test_rated_result_keeps_the_explainer_reasons():
@@ -121,8 +127,22 @@ def test_real_unknown_words_are_unsure(real_service):
 
 # ---------- Warning signs (decision 041) ----------
 
-NEW_NUMBER = Reason(term="new number", text="Says it's from a new or temporary number")
-MONEY = Reason(term="send me 450", text="Asks you to send money or pay something")
+NEW_NUMBER = Reason(
+    term="new number",
+    text="Says it's from a new or temporary number: scammers often pretend to be family or friends who've lost their phone.",
+)
+MONEY = Reason(
+    term="send me 450",
+    text="Asks you to send money: don't send money to a number you don't know without checking first.",
+)
+LINK = Reason(term="urltoken", text="Contains a link: scam texts often lead to fake websites that look real.")
+
+
+def test_explanation_only_signs_never_change_a_legitimate_result():
+    # A link, an account mention and urgency are explanation only (decision 043).
+    result = check_with(make_prediction("ham", 0.9), "Verify your account today at www.example.com")
+    assert (result.label, result.status) == ("ham", "rated")
+    assert result.reasons[0] == LINK
 
 
 def test_legitimate_with_a_warning_sign_becomes_unsure_with_no_confidence():
@@ -146,7 +166,7 @@ def test_signs_come_first_on_a_scam_result_and_keep_its_label():
     contributions = {"urltoken": {"ham": -0.6, "spam": 0.1, "smishing": 0.5}}
     result = check_with(make_prediction("smishing", 0.9, contributions=contributions), "send me 450 at www.pay.com")
     assert (result.label, result.status) == ("smishing", "rated")
-    assert result.reasons == [MONEY, Reason(term="urltoken", text="Contains a link")]
+    assert result.reasons == [MONEY, LINK]
 
 
 def test_signs_never_turn_a_result_into_likely_scam():
@@ -155,9 +175,8 @@ def test_signs_never_turn_a_result_into_likely_scam():
 
 
 def test_at_most_3_reasons_with_signs():
-    contributions = {w: {"ham": -0.5, "spam": 0.0, "smishing": 0.5} for w in ("aa", "bb", "cc")}
-    message = "new number send me 450 aa bb cc"
-    result = check_with(make_prediction("smishing", 0.9, contributions=contributions), message)
+    message = "new number send me 450 at www.pay.com, you won a prize, verify your account urgently"
+    result = check_with(make_prediction("smishing", 0.9), message)
     assert len(result.reasons) == 3
     assert result.reasons[:2] == [NEW_NUMBER, MONEY]
 
@@ -170,7 +189,7 @@ def test_no_signs_leaves_the_result_unchanged():
 def test_real_hi_mum_scam_is_no_longer_looks_legitimate(real_service):
     result = real_service.check("Hi mum, my phone is broken, this is my new number, can you send me money")
     assert (result.label, result.status, result.confidence) == ("unsure", "warning_signs", None)
-    assert [r.text for r in result.reasons[:2]] == [
-        "Says it's from a new or temporary number",
-        "Asks you to send money or pay something",
+    assert result.reasons[:2] == [
+        Reason(term="new number", text=NEW_NUMBER.text),
+        Reason(term="send me money", text=MONEY.text),
     ]

@@ -17,8 +17,8 @@ Layered modular monolith: one Flask app, one module per component, modules talk 
 | Application | `check_service` | Check a message: text → check result (applies the Unsure rule) |
 | ML | `preprocessor` | Clean the text: raw text → cleaned text with tokens |
 | ML | `classifier` | Classify: cleaned text → label + probability per class + recognised-term count + term contributions; Load model: version → model |
-| ML | `explainer` | Explain: cleaned text + prediction → up to 3 reasons (for Legitimate: signs to be careful of) |
-| Application | `signals` | Find signs: cleaned text → list of warning signs (decision 041) |
+| ML | `explainer` | Explain: cleaned text + prediction → up to 3 reasons, each a warning sign with why it matters, or a fallback (decision 043) |
+| Application | `signals` | Find signs: cleaned text → list of warning signs; 3 of the 11 can change a result (decisions 041, 043) |
 | Offline | `training` | Trains, evaluates and saves the model file |
 
 Not built yet (designed for later): feedback API, feedback service and store, scheduled retraining, monitoring.
@@ -588,7 +588,49 @@ It runs in three steps, with a check-in between each:
   - the spec-token test still passes against the updated spec, and every other test still passes
 - **Manual check:** screenshots at 1280px and 390px, then the developer redeploys.
 
-**Later items:** the rest of Stage 12 (failure handling and edge cases, plus the optional "no plain numbers in reasons" tweak) is planned after item 1.
+**Item 2 – Reasons as warning signs with a "why" (decision 043; approved 15 Nov, in progress):**
+- **The fixed list:** every reason comes from a fixed list of warning signs in `app/signals`. Each sign has a name, a title, a short "why it matters" and whether it can change the result. The reason text is "Title: why", for example "Contains a link: scam texts often lead to fake websites that look real." "Uses the word…" reasons disappear.
+
+  | Sign | Found by | Can change the result? |
+  | --- | --- | --- |
+  | New or temporary number | existing patterns | **Yes** (041) |
+  | Asks for card details or a code | existing patterns | **Yes** (041) |
+  | Asks you to send money | existing patterns | **Yes** (041) |
+  | Contains a link | `urltoken` | No |
+  | Contains a phone number | `phonetoken` | No |
+  | Mentions an amount of money | `moneytoken` | No |
+  | Mentions winning or a prize | win, winner, won, prize, claim, selected, congratulations, reward | No |
+  | Mentions your account or security | account, verify, login, password, suspended, restricted, locked, limited, unauthorised, device | No |
+  | Mentions a payment or fee | fee, pay, payment, unpaid, charge, outstanding, refund, bill | No |
+  | Creates urgency | urgent, immediately, asap, today, within N hours, expire, final notice, last chance | No |
+  | Has opt-out wording (STOP) | txt/reply/text STOP, unsubscribe, opt out | No |
+
+- **Order:** up to 3 reasons. The result-changing signs come first, then the rest in the table's order; for a spam result, the opt-out sign comes first.
+- **No signs found:**
+  - scam: "The wording is similar to scam texts the model learned from."
+  - spam: "The wording is similar to marketing texts the model learned from."
+  - Looks legitimate: "No common warning signs found" (renamed from "No common scam signs found")
+  - Unsure: no reasons, so the page shows "There were no clear signs either way."
+- **Explainer:** `explain(cleaned_text, prediction)` builds reasons from the signs plus these fallbacks, and no longer uses the model's word weights. `Prediction.contributions` stays in the classifier (unchanged interface) but isn't used for reasons.
+- **Check service:** only the three result-changing signs can turn Looks legitimate into Unsure, as before, so every result from Stage 11 stays the same. Reasons now come only from the explainer.
+- **Unchanged:** the API (reasons are still `{term, text}`) and the web page (heading logic stays the same).
+- **Files:** `app/signals/signals.py`, `app/explainer/explainer.py`, `app/check_service/service.py`, tests (`test_signals.py`, `test_explainer.py`, `test_check_service.py`, plus any web or API test with old reason wording), `docs/ui-design.md`, CLAUDE.md and the plan and handover interface tables, decisions 033 and 043.
+- **Tests:**
+  - each new sign's words trigger it, and ordinary genuine texts don't trigger the result-changing ones
+  - the reason format is "Title: why"
+  - ordering and the cap of 3, including the spam rule
+  - each fallback
+  - no reason ever says "Uses the word"
+  - "safe" never appears
+  - the reference set's outcomes are identical to the Stage 11 results on both halves (only the wording changes)
+
+**Item 2 results (15 Nov):**
+- **Tests:** 314 pass.
+- **Results unchanged:** reference-set outcomes are identical to Stage 11 on both halves. The held-out half was re-scored only to confirm this, with no decisions made from it.
+- **Wording:** reasons now read, for example, "Contains a link: scam texts often lead to fake websites that look real." No "Uses the word…" remains, so the "19" and "due" oddities are gone too, and the optional "no plain numbers in reasons" tweak isn't needed any more.
+- **Side effects:** a genuine verification code now shows "Mentions your account or security…" under Unsure, and a casual "running late" text shows no reasons ("There were no clear signs either way.").
+
+**Later items:** the rest of Stage 12 (failure handling and edge cases) is planned after item 2.
 
 ## Stage 13 – User testing and final fixes
 **Goal:** people unfamiliar with the app try the finished version; record where they hesitate or misread results; fix what they find (decision 038).

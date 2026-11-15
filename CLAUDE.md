@@ -31,8 +31,8 @@ One Flask app. One package per component. Packages talk **only through their int
 | `app/check_service` | Runs a check; applies the Unsure rules and warning signs | Check a message: text → check result |
 | `app/preprocessor` | Cleans text | Clean the text: raw text → cleaned text |
 | `app/classifier` | ML model (+ a mock with the same interface) | Classify: cleaned text → label + probability per class + recognised-term count + term contributions; Load model: version → model |
-| `app/explainer` | Reasons behind a result | Explain: cleaned text + prediction → up to 3 reasons (for Legitimate: signs to be careful of) |
-| `app/signals` | Hand-written warning signs (decision 041) | Find signs: cleaned text → list of signs (new number, card or code, money request) |
+| `app/explainer` | Reasons behind a result | Explain: cleaned text + prediction → up to 3 reasons, each a warning sign with why it matters, or a fallback (decision 043) |
+| `app/signals` | Hand-written warning signs (decisions 041, 043) | Find signs: cleaned text → list of signs (11 kinds; only new number, card or code and money request can change a result) |
 | `training/` | Offline: trains, evaluates and saves the model | Writes `models/` |
 
 Labels: `ham` (shown as Legitimate), `spam` (Marketing spam), `smishing` (Likely scam).

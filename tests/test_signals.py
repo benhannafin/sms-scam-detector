@@ -53,8 +53,9 @@ def test_asks_for_money(message):
     "Running 10 mins late, traffic is mad. Order me a coffee?",
     "",
 ])
-def test_genuine_texts_have_no_signs(message):
-    assert names(message) == []
+def test_genuine_texts_have_no_result_changing_signs(message):
+    # Explanation-only signs (such as "account" or "bill") may appear; these three must not.
+    assert not any(sign.changes_result for sign in find_signs(clean_text(message)))
 
 
 def test_at_most_one_sign_of_each_kind_in_a_fixed_order():
@@ -64,10 +65,43 @@ def test_at_most_one_sign_of_each_kind_in_a_fixed_order():
 
 def test_sign_records_the_matched_words_and_the_reason():
     assert find_signs(clean_text("Hi mum, this is my new number")) == [
-        Sign(name="new_number", term="new number", text="Says it's from a new or temporary number")
+        Sign(
+            name="new_number",
+            term="new number",
+            text="Says it's from a new or temporary number: scammers often pretend to be family or friends who've lost their phone.",
+            changes_result=True,
+        )
     ]
 
 
-def test_reason_wording_never_says_safe():
-    from app.signals.signals import PATTERNS
-    assert all("safe" not in text.lower() for _, text, _ in PATTERNS)
+def test_only_the_first_three_signs_can_change_a_result():
+    from app.signals.signals import SIGNS
+    changing = [name for name, _, _, changes, _ in SIGNS if changes]
+    assert changing == ["new_number", "card_or_code", "money_request"]
+
+
+@pytest.mark.parametrize("message, name", [
+    ("Visit www.example.com", "link"),
+    ("Call 0871 234 5678", "phone_number"),
+    ("You have won a prize, claim it now", "prize"),
+    ("Your account has been suspended", "account"),
+    ("Please verify your details", "account"),
+    ("Pay the unpaid fee", "payment"),
+    ("Claim your refund", "payment"),
+    ("Act immediately", "urgency"),
+    ("Respond within 24 hours", "urgency"),
+    ("Only €1.99", "money_amount"),
+    ("Txt STOP to end", "opt_out"),
+    ("Reply STOP to unsubscribe", "opt_out"),
+])
+def test_explanation_only_signs(message, name):
+    signs = {sign.name: sign for sign in find_signs(clean_text(message))}
+    assert name in signs
+    assert signs[name].changes_result is False
+
+
+def test_every_reason_is_title_and_why_and_never_says_safe():
+    from app.signals.signals import SIGNS
+    for _, title, why, _, _ in SIGNS:
+        assert title and why.endswith(".")
+        assert "safe" not in f"{title} {why}".lower()

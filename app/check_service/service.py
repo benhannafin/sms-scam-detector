@@ -1,13 +1,12 @@
-"""Check a message and apply the Unsure rules (decisions 034, 041)."""
+"""Check a message and apply the Unsure rules (decisions 034, 041, 043)."""
 from dataclasses import dataclass
 
-from app.explainer import NO_SIGNS, Reason, explain
+from app.explainer import explain
 from app.preprocessor import clean_text
 from app.signals import find_signs
 
-# Placeholder until Stage 11 tunes it; kept at 0.7 (decision 041).
+# Kept at 0.7 after Stage 11 (decision 041).
 UNSURE_THRESHOLD = 0.7
-MAX_REASONS = 3
 
 
 @dataclass(frozen=True)
@@ -36,35 +35,16 @@ class CheckService:
 
         confidence = prediction.probabilities[prediction.label]
         reasons = explain(cleaned, prediction)
-        # Warning signs always come first in the reasons (decision 041).
-        signs = [Reason(term=sign.term, text=sign.text) for sign in find_signs(cleaned)]
+        # Next to Unsure, only real signs are shown: a fallback such as "No common warning signs
+        # found" would contradict the result.
+        sign_reasons = [reason for reason in reasons if reason.term is not None]
 
-        if prediction.label == "ham" and signs:
-            # From an unknown sender, a sign rules out Looks legitimate. No confidence is shown,
-            # because a high ham probability next to Unsure would read as reassurance.
-            return CheckResult(
-                label="unsure", confidence=None, status="warning_signs",
-                reasons=_combine(signs, reasons),
-            )
+        # Only the three result-changing signs (decision 041) can rule out Looks legitimate.
+        if prediction.label == "ham" and any(s.changes_result for s in find_signs(cleaned)):
+            # No confidence is shown: a high ham probability next to Unsure would read as reassurance.
+            return CheckResult(label="unsure", confidence=None, status="warning_signs", reasons=sign_reasons)
 
         if confidence < self._threshold:
-            return CheckResult(
-                label="unsure", confidence=confidence, status="low_confidence",
-                reasons=_combine(signs, reasons),
-            )
+            return CheckResult(label="unsure", confidence=confidence, status="low_confidence", reasons=sign_reasons)
 
-        return CheckResult(
-            label=prediction.label, confidence=confidence, status="rated",
-            reasons=_combine(signs, reasons, keep_no_signs=True),
-        )
-
-
-def _combine(signs, reasons, keep_no_signs=False):
-    """Signs first, then the explainer's reasons, up to MAX_REASONS.
-
-    "No common scam signs found" is only kept on a rated result: next to Unsure, or next to
-    a warning sign, it would contradict the result.
-    """
-    drop_no_signs = bool(signs) or not keep_no_signs
-    model_reasons = [r for r in reasons if not (drop_no_signs and r == NO_SIGNS)]
-    return (signs + model_reasons)[:MAX_REASONS]
+        return CheckResult(label=prediction.label, confidence=confidence, status="rated", reasons=reasons)

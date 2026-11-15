@@ -1,22 +1,23 @@
-"""Stage 5 tests: turning a prediction into reasons."""
+"""Stage 5 and 12 tests: reasons are warning signs with why they matter (decision 043)."""
 import pytest
 
 from app.classifier import Prediction, load_model
-from app.explainer import Reason, explain
+from app.explainer import NO_SIGNS, Reason, explain
 from app.preprocessor import clean_text
 
+LINK = "Contains a link: scam texts often lead to fake websites that look real."
+OPT_OUT = "Has opt-out wording (STOP): this is typical of marketing texts."
+SCAM_FALLBACK = "The wording is similar to scam texts the model learned from."
+SPAM_FALLBACK = "The wording is similar to marketing texts the model learned from."
 
-def make_prediction(label, contributions):
-    """A Prediction with made-up contributions; probabilities don't affect reasons."""
-    return Prediction(
-        label=label,
-        probabilities={"ham": 0.2, "spam": 0.3, "smishing": 0.5},
-        recognised_terms=len(contributions),
-        contributions={
-            term: {"ham": scores[0], "spam": scores[1], "smishing": scores[2]}
-            for term, scores in contributions.items()
-        },
-    )
+
+def make_prediction(label):
+    """Reasons only depend on the label and the message, not the probabilities."""
+    return Prediction(label, {"ham": 0.2, "spam": 0.3, "smishing": 0.5}, 5)
+
+
+def texts(message, label):
+    return [reason.text for reason in explain(clean_text(message), make_prediction(label))]
 
 
 @pytest.fixture(scope="module")
@@ -24,145 +25,82 @@ def classifier():
     return load_model("v1")
 
 
-def test_scam_reasons_are_the_biggest_contributions_in_order():
-    prediction = make_prediction("smishing", {
-        "claim": (-0.5, 0.1, 0.6),
-        "urltoken": (-0.6, 0.2, 0.8),
-        "prize": (-0.3, 0.2, 0.4),
-        "later": (0.3, 0.0, 0.1),
-    })
-    reasons = explain("claim your prize at urltoken later", prediction)
-    assert [r.term for r in reasons] == ["urltoken", "claim", "prize"]
+def test_reasons_are_written_as_title_and_why():
+    for text in texts("Verify your account now at www.bank-login.com", "smishing"):
+        title, why = text.split(": ", 1)
+        assert title and why.endswith(".")
 
 
-def test_spam_reasons_use_the_spam_scores():
-    prediction = make_prediction("spam", {
-        "txt": (-0.4, 0.5, 0.1),
-        "claim": (-0.4, 0.2, 0.6),
-    })
-    assert [r.term for r in explain("txt to claim", prediction)] == ["txt", "claim"]
+def test_reasons_never_say_uses_the_word():
+    message = "WINNER! You have won a £1000 prize. Call 09061701461 to claim now"
+    assert not any("Uses the word" in text for text in texts(message, "smishing"))
 
 
-def test_terms_made_only_of_filler_words_are_left_out():
-    prediction = make_prediction("smishing", {
-        "your": (-0.9, 0.0, 0.9),
-        "you have": (-0.8, 0.0, 0.8),
-        "your order": (-0.5, 0.0, 0.5),
-        "claim": (-0.4, 0.0, 0.4),
-    })
-    reasons = explain("your order you have to claim", prediction)
-    assert [r.term for r in reasons] == ["your order", "claim"]
-
-
-def test_filler_words_leave_room_for_meaningful_reasons():
-    prediction = make_prediction("ham", {
-        "to": (-0.4, 0.2, 0.2),
-        "new": (-0.2, 0.1, 0.1),
-    })
-    assert [r.term for r in explain("new to", prediction)] == ["new"]
-
-
-def test_terms_weaker_than_the_minimum_are_not_reasons():
-    prediction = make_prediction("smishing", {"urltoken": (-0.6, 0.0, 0.8), "is": (-0.1, 0.0, 0.1)})
-    assert [r.term for r in explain("is urltoken", prediction)] == ["urltoken"]
-
-
-def test_legitimate_with_only_weak_signs_says_no_signs():
-    prediction = make_prediction("ham", {"on": (-0.14, 0.07, 0.07), "the": (-0.04, 0.02, 0.02)})
-    assert explain("on the way", prediction) == [Reason(term=None, text="No common scam signs found")]
-
-
-def test_terms_that_pointed_away_from_the_label_are_not_reasons():
-    prediction = make_prediction("smishing", {"urltoken": (-0.6, 0.0, 0.8), "pay": (0.1, 0.0, -0.1)})
-    assert [r.term for r in explain("pay at urltoken", prediction)] == ["urltoken"]
+def test_result_changing_signs_come_first():
+    message = "Hi mum new number, can you send me 450 and pay at www.pay-now.com"
+    assert texts(message, "smishing")[:2] == [
+        "Says it's from a new or temporary number: scammers often pretend to be family or friends who've lost their phone.",
+        "Asks you to send money: don't send money to a number you don't know without checking first.",
+    ]
 
 
 def test_no_more_than_3_reasons():
-    prediction = make_prediction("smishing", {
-        word: (-0.1, 0.0, 0.1 * i) for i, word in enumerate(["aa", "bb", "cc", "dd", "ee"], 1)
-    })
-    assert len(explain("aa bb cc dd ee", prediction)) == 3
+    message = "URGENT: you won a prize! Verify your account and pay the fee of €2 at www.claim.com or call 0871234567"
+    assert len(texts(message, "smishing")) == 3
 
 
-def test_terms_overlapping_one_already_chosen_are_skipped():
-    prediction = make_prediction("smishing", {
-        "phonetoken": (-0.6, 0.0, 0.9),
-        "call phonetoken": (-0.5, 0.0, 0.8),
-        "claim": (-0.4, 0.0, 0.5),
-    })
-    assert [r.term for r in explain("call phonetoken to claim", prediction)] == ["phonetoken", "claim"]
+def test_spam_results_lead_with_the_opt_out_sign():
+    message = "Win a €100 voucher at www.shop.com today. Txt STOP to end"
+    assert texts(message, "spam")[0] == OPT_OUT
 
 
-def test_legitimate_shows_only_terms_that_took_from_ham():
-    prediction = make_prediction("ham", {
-        "my": (0.33, -0.2, -0.13),
-        "new": (-0.2, 0.15, 0.05),
-        "send": (-0.15, 0.05, 0.1),
-    })
-    reasons = explain("my new number send me", prediction)
-    assert [r.term for r in reasons] == ["new", "send"]
+def test_scam_results_keep_the_list_order():
+    message = "Win a €100 voucher at www.shop.com today. Txt STOP to end"
+    assert texts(message, "smishing")[0] == LINK
 
 
-def test_legitimate_with_no_warning_signs_says_so():
-    prediction = make_prediction("ham", {"later": (0.2, -0.1, -0.1)})
-    assert explain("see you later", prediction) == [Reason(term=None, text="No common scam signs found")]
-
-
-def test_scam_with_no_supporting_terms_gives_no_reasons():
-    assert explain("anything", make_prediction("smishing", {})) == []
-
-
-def test_every_reason_term_is_in_the_message():
-    prediction = make_prediction("smishing", {"urltoken": (-0.6, 0.0, 0.8), "prize": (-0.3, 0.0, 0.4)})
-    assert [r.term for r in explain("visit urltoken today", prediction)] == ["urltoken"]
-
-
-@pytest.mark.parametrize("term, text", [
-    ("urltoken", "Contains a link"),
-    ("moneytoken", "Mentions an amount of money"),
-    ("phonetoken", "Contains a phone number"),
-    ("claim", 'Uses the word "claim"'),
-    ("to claim", 'Uses the phrase "to claim"'),
-    ("call phonetoken", 'Uses the phrase "call [phone number]"'),
-    ("moneytoken prize", 'Uses the phrase "[amount of money] prize"'),
+@pytest.mark.parametrize("label, fallback", [
+    ("smishing", SCAM_FALLBACK),
+    ("spam", SPAM_FALLBACK),
+    ("ham", NO_SIGNS.text),
 ])
-def test_wording(term, text):
-    prediction = make_prediction("smishing", {term: (-0.5, 0.0, 0.5)})
-    assert explain(term, prediction) == [Reason(term=term, text=text)]
+def test_fallback_when_no_sign_is_found(label, fallback):
+    assert texts("see you at the cinema", label) == [fallback]
+
+
+def test_fallbacks_and_no_signs_have_no_term():
+    assert explain("see you later", make_prediction("smishing"))[0].term is None
+    assert NO_SIGNS == Reason(term=None, text="No common warning signs found")
+
+
+def test_sign_reasons_record_the_matched_words():
+    reasons = explain(clean_text("Visit www.example.com"), make_prediction("smishing"))
+    assert reasons == [Reason(term="urltoken", text=LINK)]
 
 
 @pytest.mark.parametrize("message", [
     "WINNER! You have won a £1000 prize. Call 09061701461 to claim now",
     "Your AIB account is locked, verify now at aib-secure.ie",
-    "FreeMsg: get the latest ringtones, txt TONE to 87121, 150p/msg",
-    "See you at the cinema later, will text when I get there",
+    "FreeMsg: get the latest ringtones, txt TONE to 87121, 150p/msg. Txt STOP to end",
+    "Can you pick up milk on the way home?",
     "Hi mum, my phone is broken, this is my new number, can you send me money",
     "xyzzy qwertyuiop",
 ])
-def test_real_classifier_reasons_are_from_the_message_and_never_say_safe(classifier, message):
+def test_real_classifier_reasons_never_say_safe(classifier, message):
     cleaned = clean_text(message)
-    reasons = explain(cleaned, classifier.classify(cleaned))
-    assert 1 <= len(reasons) <= 3
-    for reason in reasons:
-        assert reason.term is None or reason.term in cleaned
+    for reason in explain(cleaned, classifier.classify(cleaned)):
         assert "safe" not in reason.text.lower()
 
 
-def test_real_classifier_gives_sensible_scam_reasons(classifier):
+def test_real_classifier_gives_meaningful_scam_reasons(classifier):
     cleaned = clean_text("WINNER! You have won a £1000 prize. Call 09061701461 to claim now")
-    terms = [r.term for r in explain(cleaned, classifier.classify(cleaned))]
-    assert terms == ["phonetoken", "claim", "prize"]
-
-
-def test_real_classifier_shows_warning_signs_for_the_hi_mum_scam(classifier):
-    cleaned = clean_text("Hi mum, my phone is broken, this is my new number, can you send me money")
     prediction = classifier.classify(cleaned)
-    assert prediction.label == "ham"
-    assert [r.term for r in explain(cleaned, prediction)] == ["new", "send"]
+    assert prediction.label == "smishing"
+    assert [r.text.split(":")[0] for r in explain(cleaned, prediction)] == [
+        "Contains a phone number", "Mentions winning or a prize", "Mentions an amount of money",
+    ]
 
 
 def test_real_classifier_shows_no_signs_for_an_ordinary_text(classifier):
     cleaned = clean_text("Can you pick up milk on the way home?")
-    assert explain(cleaned, classifier.classify(cleaned)) == [
-        Reason(term=None, text="No common scam signs found")
-    ]
+    assert explain(cleaned, classifier.classify(cleaned)) == [NO_SIGNS]

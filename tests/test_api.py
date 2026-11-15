@@ -37,7 +37,10 @@ def test_valid_request_returns_every_field(client):
         "label": "smishing",
         "confidence": 0.8,
         "status": "rated",
-        "reasons": [{"term": "urltoken", "text": "Contains a link"}],
+        "reasons": [
+            {"term": "urltoken", "text": "Contains a link: scam texts often lead to fake websites that look real."},
+            {"term": "claim", "text": "Mentions winning or a prize: offers that seem too good to be true are a common lure."},
+        ],
     }
 
 
@@ -56,7 +59,7 @@ def test_warning_signs_status_reaches_the_api():
         "label": "unsure",
         "confidence": None,
         "status": "warning_signs",
-        "reasons": [{"term": "new number", "text": "Says it's from a new or temporary number"}],
+        "reasons": [{"term": "new number", "text": "Says it's from a new or temporary number: scammers often pretend to be family or friends who've lost their phone."}],
     }
 
 
@@ -157,4 +160,4 @@ def test_real_model_works_through_the_api():
     body = response.get_json()
     assert response.status_code == 200
     assert (body["label"], body["status"]) == ("smishing", "rated")
-    assert body["reasons"][0] == {"term": "phonetoken", "text": "Contains a phone number"}
+    assert body["reasons"][0] == {"term": "phonetoken", "text": "Contains a phone number: scam texts often give a number that goes to the scammer, not the real company."}

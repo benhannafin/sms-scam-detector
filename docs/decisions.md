@@ -50,6 +50,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 | 040 | Stage 11 approach: reference set first, then rules alongside the model | Accepted |
 | 041 | Unknown sender, warning signs, clearer reasons, threshold kept | Accepted |
 | 042 | No highlighted words; "Your message" shown as plain text | Accepted |
+| 043 | Reasons are named warning signs with a "why", not model words | Accepted |
 
 ---
 
@@ -249,7 +250,7 @@ Every significant design decision, with the reasoning behind it. Add a new entry
 **Consequences:** Model files can run code when loaded, so they only ever come from our own `models/` folder, and the version never comes from user input. The check service must handle `recognised_terms`. A message with at least one recognised term is still rated normally, however unfamiliar the rest of it is.
 
 ## 033 – Explainer: how reasons are chosen and worded
-**Status:** Accepted (6 Nov 2026)
+**Status:** Accepted (6 Nov 2026); its way of choosing reasons is replaced by 043 (15 Nov 2026)
 **Context:** In logistic regression, each term's contribution to a class is its TF-IDF value times its learned weight, so the biggest contributions to the winning class are exact reasons. On made-up scam and spam texts these were sensible (link, money, `claim`, `prize`). For Legitimate results they were everyday words: a made-up "Hi mum, my phone is broken, this is my new number, can you send me money" scam came out as ham at 91% because of `my`, `me` and `can`, while the words pointing towards a scam (`new`, `send`) would never have been shown. The agreed interfaces also gave the explainer no way to get the contributions without reaching into the classifier.
 **Decision:** This changes the Classify and Explain interfaces. The classifier adds `contributions` to `Prediction`, covering only the message's terms. `explain` returns up to 3 `Reason(term, text)` items. For spam or smishing, these are the terms that added most to that label. For ham, they are the terms that took most from ham, shown as signs to be careful of, or "No common scam signs found" if there are none. A term is skipped if it shares a word with one already chosen. Tokens and terms are given plain wording, and the term is kept for highlighting in Stage 8.
 **Alternatives considered:** The explainer loads the model itself (reaches into another package's internals); the classifier adds a separate method (the check service would then pass extra input to Explain); show the words that made a message look legitimate (honest about the model, but risks false reassurance, see 004 and 026); no reasons for Legitimate (simpler, but users get nothing to judge with); keyword rules separate from the model (wouldn't reflect what the model actually used).
@@ -403,3 +404,21 @@ An `origin` column marks each message, and results are reported separately for e
 **Decision:** Remove the highlights and the "Highlighted: …" note. Keep the "Your message" panel, showing the message as plain text: it confirms what was checked and gives context for the reasons. The result page has the result card (verdict, summary, confidence, What to do), Your message, and Why we think this. The API is unchanged and still returns each reason's `term`, although the page no longer uses it.
 **Alternatives considered:** Remove the whole "Your message" panel (loses the check that the right text was pasted, and the context for the reasons); keep the highlights (misleading); remove `term` from the API (an interface change for no benefit).
 **Consequences:** Updates the highlight parts of 033 and 036. The `--*-mark` colour tokens and the highlight component leave the spec and the stylesheet. The reasons, including the warning signs, are now the only explanation shown.
+
+## 043 – Reasons are named warning signs with a "why", not model words
+**Status:** Accepted (15 Nov 2026)
+**Context:** Reasons such as "Uses the word 'new'" or "Uses the word 'stop'" come from the model's word weights (033). They're faithful to the model, but they don't explain anything to a reader and can mislead (Stage 10 self-review, 042). The developer asked for genuine reasoning. The model has no human reasoning to show: it adds up word weights.
+**Decision:**
+- **The fixed list:** reasons come from a fixed list of named warning signs in `app/signals`. Each sign has a title and a short "why it matters", shown as "Title: why". The list: the three result-changing signs from 041; the three token signs (link, phone number, amount of money); and five found by word lists (winning or a prize, account or security, payment or fee, urgency, opt-out wording).
+- **Order:** up to 3 reasons, result-changing signs first; for spam, the opt-out sign first.
+- **Fallbacks when no sign is found:** "The wording is similar to scam texts the model learned from." (or "marketing texts"); "No common warning signs found" for Looks legitimate.
+- **Results unchanged:** only the three 041 signs can change a result, so the new signs are explanation only.
+- **Interfaces:** the explainer no longer uses the model's word weights. `Prediction.contributions` stays, but is unused for reasons. The API is unchanged.
+**Alternatives considered:**
+- **Keep model words, translated into sign types where they fit and dropped otherwise:** more tied to the model, but more complex, and some results would have no reasons.
+- **Keep "Uses the word…":** faithful, but unhelpful and misleading.
+- **An AI language model to write explanations:** ruled out by 011.
+**Consequences:**
+- **What reasons mean now:** they explain the warning signs found in a message, not the model's internal arithmetic. The fallback says plainly when only the model's learned wording made the call. The report should describe the reasons this way.
+- **Signs can appear on genuine texts:** for example "Mentions your account or security" on a verification code. On Looks legitimate results they show as "Signs to be careful of", which suits the unknown-sender assumption (041).
+- **Updated decisions:** this replaces 033's way of choosing reasons. The minimum strength and filler-word list (033, 041) are no longer needed.
